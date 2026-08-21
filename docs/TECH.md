@@ -80,8 +80,9 @@ arvan-reseller/
 │   ├── Wallet/          (PaymentService, ManualAdjustmentService — ledger
 │   │                      rules live in these + LedgerRepository itself,
 │   │                      no separate Ledger/ folder)
-│   ├── Provisioning/    (ProvisioningService)
-│   ├── Metering/        (not built yet)
+│   ├── Provisioning/    (ProvisioningService, ResourceSyncService, DeliveryData)
+│   ├── Metering/        (MeteringService, UsagePeriod, UsagePricingAdapter)
+│   ├── Billing/         (BillingService)
 │   ├── Lifecycle/       (ServiceStatus)
 │   ├── Arvan/
 │   └── Ports/

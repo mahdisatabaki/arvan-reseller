@@ -16,7 +16,7 @@
 بلوک ۲  ██████████ 100%   تمام (۴/۴ تسک) — DoD تأیید شد با کلیک واقعی روی وردپرس محلی
 بلوک ۳  ██████████ 100%   تمام (۶/۶ تسک)
 بلوک ۴  ██████████ 100%   تمام (۴/۴ تسک)
-بلوک ۵  ███████░░░  75%   T-5.1, T-5.2, T-5.3 تمام — بعدی: T-5.4 Demo billing trigger
+بلوک ۵  ██████████ 100%   تمام (۴/۴ تسک)
 بلوک ۶  ░░░░░░░░░░   0%
 بلوک ۷  ░░░░░░░░░░   0%
 بلوک ۸  ░░░░░░░░░░   0%
@@ -25,7 +25,7 @@
 بلوک ۱۱ ░░░░░░░░░░   0%
 ```
 
-**قدم بعدی: T-5.4 — Demo billing trigger** («Run Billing Cycle Now»، اولین trigger واقعی برای `MeteringService`+`BillingService`).
+**قدم بعدی: بلوک ۶ — Limits + Lifecycle**، با T-6.1 (`ThresholdPolicy`). این بلوک مستقیم به نتیجه‌ی billing (بلوک ۵) وابسته است، پس دیگر جای موازی‌کاری زیادی نمی‌ماند.
 
 **نکته‌ی محیطی:** سایت تست محلی (`arvan-test.test`) الان در وضعیت «ویزارد تمام‌شده» است. برای دموی از صفر، باید پلاگین را deactivate/activate کرد یا آپشن‌های `arvan_reseller_*` را پاک کرد.
 
@@ -48,7 +48,7 @@
 | ۲ | Reseller Setup + Secrets | ✅ تمام | 4/4 | `wp/Security/WordPressSecretStore.php`, `AccessTokenGate.php`, `data/access-token-hashes.php`, `src/Ports/ApiKeyRepository.php`, `wp/Persistence/WpApiKeyRepository.php`, `src/Arvan/ApiKeyConnectionTester.php`, `wp/Admin/ResellerSettings.php`, `SetupWizard.php`, `templates/setup-wizard.php` |
 | ۳ | Wallet + Ledger + Payment | ✅ تمام | 6/6 | `wp/Persistence/WpLedgerRepository.php`, `src/Ports/CustomerRepository.php`, `wp/Persistence/WpCustomerRepository.php`, `wp/Persistence/WpWalletRepository.php`, `wp/Persistence/WpPaymentRepository.php`, `src/Wallet/PaymentService.php`, `wp/Customer/CustomerRegistration.php`, `src/Wallet/ManualAdjustmentService.php`, `wp/Persistence/WpAuditLogger.php` |
 | ۴ | CDN Provisioning + Mapping | ✅ تمام | 4/4 | `src/Lifecycle/ServiceStatus.php`, `src/Ports/OrderRepository.php`, `wp/Persistence/WpOrderRepository.php`, `wp/Persistence/WpServiceRepository.php`, `src/Provisioning/ProvisioningService.php`, `src/Provisioning/ResourceSyncService.php`, `src/Provisioning/DeliveryData.php` |
-| ۵ | Metering + Billing | 🔶 در حال انجام | 3/4 | `src/Metering/MeteringService.php`, `src/Metering/UsagePeriod.php`, `src/Metering/UsagePricingAdapter.php`, `src/Ports/UsageLogRepository.php`, `wp/Persistence/WpUsageLogRepository.php`, `src/Billing/BillingService.php` |
+| ۵ | Metering + Billing | ✅ تمام | 4/4 | `src/Metering/MeteringService.php`, `src/Metering/UsagePeriod.php`, `src/Metering/UsagePricingAdapter.php`, `src/Ports/UsageLogRepository.php`, `wp/Persistence/WpUsageLogRepository.php`, `src/Billing/BillingService.php`, `wp/Cron/MeteringCronHandler.php`, `wp/Support/SystemClock.php` |
 | ۶ | Limits + Lifecycle | ⏳ شروع‌نشده | 0/5 | — |
 | ۷ | Customer Frontend | ⏳ شروع‌نشده | 0/6 | — |
 | ۸ | Reseller Admin | ⏳ شروع‌نشده | 0/5 | — |
@@ -182,6 +182,18 @@
 **مهم‌ترین تصمیم طراحی:** کلید idempotency برای debit فقط از `service_id + period_start` ساخته می‌شود، نه `period_end`. چون `period_end` = `Clock::now()` لحظه‌ی هر فراخوانی است، دو اجرای هم‌زمان (دقیقاً همان race که T-5.2 باید جلویش را بگیرد) `period_end` متفاوت می‌گیرند — کلیدسازی روی آن idempotency را در دقیقاً همان سناریو می‌شکست. این مطابق unique key خودِ جدول `arvan_usage_log` است: `(service_id, period_start)` تنها، نه period_end.
 
 **تست:** ۱۷ چک خودکار، شامل یک سناریوی اختصاصی برای همین race (همان period_start، period_end/مقدار مصرف متفاوت — شبیه‌سازی دو اجرای هم‌زمان قبل از پیشرفت watermark) که تأیید کرد فقط یک debit اتفاق می‌افتد، نه صرفاً استدلال نظری.
+
+### T-5.4 — Demo billing trigger (بستن بلوک ۵)
+
+`wp/Cron/MeteringCronHandler.php` — تنها listener واقعی روی `Scheduler::HOOK_METER` که از T-0.5 زمان‌بندی می‌شد ولی هیچ‌کس گوش نمی‌داد. «Run Billing Cycle Now» یک اکشن `admin-post.php` جدا (nonce+capability) است که دقیقاً همان متد `run()` مسیر cron را صدا می‌زند. قفل transient درشت‌دانه روی کل batch — محافظ در برابر فراخوانی تکراری provider، نه مکانیزم امنیت مالی (آن از idempotency key خودِ `BillingService` می‌آید). هر سرویس مستقل پردازش می‌شود؛ شکست یک سرویس (کلید غیرفعال/ciphertext خراب/خطای provider) بقیه‌ی batch را متوقف نمی‌کند.
+
+`wp/Support/SystemClock.php` هم اینجا ساخته شد — اولین پیاده‌سازی واقعی پورت `Clock` (تا الان همه‌جا فقط fake در تست‌ها بود).
+
+عمداً ساخته نشد: «usage fixture/time advance» دمو — هیچ صفحه‌ی ادمینی (T-9.2) برای استفاده از آن نیست.
+
+**تست:** ۱۰ چک خودکار روی حلقه/قفل/resolveClient (کلید غیرفعال، ciphertext خراب، api_key_id خالی، رفتار قفل، wiring هر دو هوک). مسیر client واقعی به تست‌های خودِ `MeteringService`/`BillingService` (با `MockCdnClient` واقعی) واگذار شد.
+
+**بستن بلوک ۵ — DoD:** ✅ اجرای دوباره‌ی یک period هیچ debit جدیدی ایجاد نمی‌کند — هم با تست race مستقیم (T-5.3) و هم با قفل سطح batch (T-5.4).
 
 ## تصمیم‌های باز (باید در بلوک‌های بعدی حل شوند)
 

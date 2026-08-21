@@ -438,13 +438,21 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
     - `src/Billing/BillingService.php` — T-5.2 و T-5.3 در عمل یک عملیات اتمیک‌اند، جدا پیاده‌سازی نشدند. **نکته‌ی طراحی حیاتی:** کلید idempotency فقط از `service_id + period_start` ساخته می‌شود، **نه** `period_end` — چون `period_end` همان `Clock::now()` لحظه‌ی هر فراخوانی است و بین دو اجرای هم‌زمان (race واقعی که T-5.2 باید جلویش را بگیرد) یکی نیست؛ کلیدسازی روی آن دقیقاً همان race را باز می‌گذاشت. این تصمیم با یک تست اختصاصی (سناریوی C زیر) تأیید شد، نه فقط استدلال شد
     - ۱۷ چک خودکار سبز: صحت Base+Markup (۵GB × ۱۰,۰۰۰ریال=۵۰,۰۰۰ پایه، ۲۰٪=۱۰,۰۰۰ سود، ۶۰,۰۰۰ کل)، تکرار دقیق بدون debit دوم، **race واقعی** (همان period_start، period_end/مصرف متفاوت) بدون debit دوم، موجودی منفی حفظ‌شده، رد واحد پشتیبانی‌نشده بدون دست‌زدن به کیف‌پول
 
-- [ ] **T-5.4** Demo billing trigger
+- [x] **T-5.4** Demo billing trigger
   - `Run Billing Cycle Now`
   - optional controlled usage fixture/time advance
   - invokes same application service
   - **0.5h**
+  - پذیرش:
+    - `wp/Cron/MeteringCronHandler.php` — تنها listener واقعی روی `Scheduler::HOOK_METER`؛ این هوک از T-0.5 زمان‌بندی می‌شد ولی هیچ‌کس گوش نمی‌داد
+    - «Run Billing Cycle Now» یک اکشن `admin-post.php` جداگانه (`arvan_run_billing_cycle`, nonce+capability محافظت‌شده) است که **دقیقاً همان متد `run()`** مسیر cron را صدا می‌زند — نه یک کپی دوم منطق
+    - قفل transient درشت‌دانه برای کل batch (نه هر سرویس) — طبق کامنت خودِ کلاس: این محافظ در برابر فراخوانی تکراری provider است، نه مکانیزم امنیت مالی؛ امنیت واقعی از idempotency key خودِ `BillingService` می‌آید
+    - هر سرویس مستقل پردازش می‌شود: کلید API غیرفعال/ناموجود/ciphertext خراب → آن سرویس skip می‌شود با پیام، بقیه‌ی batch ادامه پیدا می‌کند
+    - `SystemClock` (`wp/Support/SystemClock.php`) هم اینجا ساخته شد — اولین پیاده‌سازی واقعی پورت `Clock`
+    - «usage fixture/time advance» عمداً ساخته نشد — هیچ UI ای (T-9.2) برای استفاده از آن هنوز نیست؛ scope اضافه نشد
+    - ۱۰ چک خودکار سبز روی حلقه/قفل/resolveClient؛ مسیر real-client به `MeteringService`/`BillingService` واگذار شد که خودشان با `MockCdnClient` واقعی تست شدند
 
-**DoD:** اجرای دوباره یک period هیچ Debit جدید ایجاد نکند.
+**DoD:** ✅ اجرای دوباره یک period هیچ Debit جدید ایجاد نکند — تأیید شد با تست race اختصاصی (T-5.3) و قفل batch سطح cron (T-5.4).
 
 ---
 

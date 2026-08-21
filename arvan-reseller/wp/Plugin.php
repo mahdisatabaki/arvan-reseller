@@ -14,16 +14,24 @@ declare( strict_types = 1 );
 namespace ArvanReseller\Wp;
 
 use ArvanReseller\Arvan\ApiKeyConnectionTester;
+use ArvanReseller\Billing\BillingService;
+use ArvanReseller\Metering\MeteringService;
+use ArvanReseller\Metering\UsagePricingAdapter;
 use ArvanReseller\Wp\Admin\ResellerSettings;
 use ArvanReseller\Wp\Admin\SetupWizard;
+use ArvanReseller\Wp\Cron\MeteringCronHandler;
 use ArvanReseller\Wp\Cron\Scheduler;
 use ArvanReseller\Wp\Customer\CustomerRegistration;
 use ArvanReseller\Wp\Installation\Installer;
 use ArvanReseller\Wp\Persistence\WpApiKeyRepository;
 use ArvanReseller\Wp\Persistence\WpCustomerRepository;
+use ArvanReseller\Wp\Persistence\WpLedgerRepository;
+use ArvanReseller\Wp\Persistence\WpServiceRepository;
+use ArvanReseller\Wp\Persistence\WpUsageLogRepository;
 use ArvanReseller\Wp\Persistence\WpWalletRepository;
 use ArvanReseller\Wp\Security\AccessTokenGate;
 use ArvanReseller\Wp\Security\WordPressSecretStore;
+use ArvanReseller\Wp\Support\SystemClock;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -56,6 +64,7 @@ final class Plugin {
 		add_filter( 'cron_schedules', [ Scheduler::class, 'addIntervals' ] );
 
 		$this->bootCustomer();
+		$this->bootCron();
 
 		if ( is_admin() ) {
 			$this->bootAdmin();
@@ -77,6 +86,33 @@ final class Plugin {
 		);
 
 		$registration->register();
+	}
+
+	/**
+	 * WP-Cron fires `Scheduler::HOOK_METER` regardless of admin context (and
+	 * the manual "Run Billing Cycle Now" trigger lives on `admin-post.php`,
+	 * which is not gated by `is_admin()` either), so this is unconditional
+	 * like `bootCustomer()`, not folded into `bootAdmin()`.
+	 */
+	private function bootCron(): void {
+		global $wpdb;
+
+		$handler = new MeteringCronHandler(
+			new WpServiceRepository( $wpdb ),
+			new WpApiKeyRepository( $wpdb ),
+			new WordPressSecretStore(),
+			new MeteringService( new SystemClock() ),
+			new BillingService(
+				new UsagePricingAdapter(),
+				new WpLedgerRepository( $wpdb ),
+				new WpUsageLogRepository( $wpdb ),
+				new WpServiceRepository( $wpdb )
+			),
+			new ResellerSettings(),
+			new SystemClock()
+		);
+
+		$handler->register();
 	}
 
 	/**
