@@ -58,6 +58,8 @@ Theme styles must not break critical layouts.
 
 ## 4. Direction
 
+All user-facing interfaces of Arvan Reseller must support Persian language and RTL layout (CLAUDE.md §UI Language & Direction) — this applies to every existing and future plugin-owned screen, not just the ones already built.
+
 - RTL-first Persian UI
 - clean cloud/SaaS admin aesthetic
 - restrained visual density

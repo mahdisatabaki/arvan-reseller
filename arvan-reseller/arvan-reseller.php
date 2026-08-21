@@ -40,7 +40,7 @@ if ( version_compare( PHP_VERSION, ARVAN_RESELLER_MIN_PHP, '<' ) ) {
 				esc_html(
 					sprintf(
 						/* translators: 1: required PHP version, 2: current PHP version */
-						__( 'Arvan Reseller requires PHP %1$s or newer. This server runs PHP %2$s.', 'arvan-reseller' ),
+						__( 'افزونه ریسلر آروان به PHP نسخه %1$s یا جدیدتر نیاز دارد. نسخه‌ی فعلی این سرور %2$s است.', 'arvan-reseller' ),
 						ARVAN_RESELLER_MIN_PHP,
 						PHP_VERSION
 					)

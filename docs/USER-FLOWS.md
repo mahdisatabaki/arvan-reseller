@@ -6,7 +6,7 @@
 Install Plugin
 → Activate
 → Setup Wizard
-→ Enter Demo Access Token
+→ Enter Access Token (issued to the reseller by ArvanCloud)
    ├ invalid → error + retry
    └ valid   → unlock setup
 → Add Arvan API Key

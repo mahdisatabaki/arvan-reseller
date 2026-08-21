@@ -29,6 +29,14 @@
 
 **نکته‌ی محیطی:** سایت تست محلی (`arvan-test.test`) الان در وضعیت «ویزارد تمام‌شده» است. برای دموی از صفر، باید پلاگین را deactivate/activate کرد یا آپشن‌های `arvan_reseller_*` را پاک کرد.
 
+### اصلاح محدوده — فارسی/RTL سراسری + متن گام توکن دسترسی
+
+بعد از تکمیل بلوک ۲، یک الزام محصولی جدید رسید: تمام UI کاربر-محور پلاگین باید فارسی/RTL باشد (نه فقط بخشی)، و متن گام ۱ ویزارد باید به‌جای ارجاع به «توکن دمو تیم هکاتون» به رابطه‌ی واقعی محصول (توکن دسترسی واقعی reseller از آروان) اشاره کند — **بدون تغییر مکانیزم واقعی احراز هویت** (همان `password_verify()` روی هش‌های bundle‌شده در `data/access-token-hashes.php`؛ ADR-006 دست‌نخورده ماند).
+
+- **فایل‌های تغییریافته:** `wp/Admin/templates/setup-wizard.php` (تمام متن‌ها فارسی + `dir="rtl"`/`lang="fa"` روی wrapper + CSS داخلی برای راست‌چین‌شدن `form-table`)، `wp/Admin/SetupWizard.php` (پیام‌های خطا/اعتبارسنجی)، `src/Arvan/ApiKeyConnectionTester.php` (۳ پیام تست اتصال — بدون `__()` چون این کلاس در لایه‌ی `src/` است)، `wp/Support/Capabilities.php` (نام نمایشی نقش «مشتری آروان»)، `arvan-reseller.php` (پیام خطای نسخه‌ی PHP)، `wp/Cron/Scheduler.php` (برچسب دو interval سفارشی).
+- **اسناد:** `CLAUDE.md` بخش جدید «UI Language & Direction»، `docs/DESIGN.md` §۴ یک جمله‌ی صریح الزام‌آور اضافه شد، `docs/USER-FLOWS.md` «Enter Demo Access Token» به «Enter Access Token (issued to the reseller by ArvanCloud)» اصلاح شد. اسناد صرفاً معماری/امنیتی (`SECURITY.md`, `DECISIONS.md` ADR-006, `DATA-MODEL.md`, `API.md`) که مکانیزم واقعی هش-محور را توصیف می‌کنند عمداً دست‌نخورده ماندند — طبق دستور صریح کاربر، تغییر آن‌ها یعنی تغییر توصیف معماری، نه فقط متن UI.
+- **تست:** روی `arvan-test.test` واقعی — گام ۱ و ۲ با کلیک واقعی و توکن دمو معتبر (`arvan_test_123`) بازبینی بصری شدند؛ راست‌چین بودن، ترتیب صحیح نشانگر مراحل، و رندر صحیح پیام‌ها تأیید شد. `php -l` روی هر ۷ فایل PHP تغییریافته سبز.
+
 ---
 
 ## جدول وضعیت بلوک‌ها

@@ -60,12 +60,12 @@ final class Scheduler {
 	public static function addIntervals( array $schedules ): array {
 		$schedules[ self::INTERVAL_FIFTEEN_MINUTES ] = [
 			'interval' => 15 * MINUTE_IN_SECONDS,
-			'display'  => __( 'Every fifteen minutes (Arvan Reseller)', 'arvan-reseller' ),
+			'display'  => __( 'هر پانزده دقیقه (ریسلر آروان)', 'arvan-reseller' ),
 		];
 
 		$schedules[ self::INTERVAL_SIX_HOURS ] = [
 			'interval' => 6 * HOUR_IN_SECONDS,
-			'display'  => __( 'Every six hours (Arvan Reseller)', 'arvan-reseller' ),
+			'display'  => __( 'هر شش ساعت (ریسلر آروان)', 'arvan-reseller' ),
 		];
 
 		return $schedules;

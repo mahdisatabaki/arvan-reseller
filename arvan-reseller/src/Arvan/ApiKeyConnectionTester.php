@@ -40,7 +40,7 @@ final class ApiKeyConnectionTester {
 
 			return [
 				'ok'      => true,
-				'message' => 'The API key authenticated successfully.',
+				'message' => 'کلید API با موفقیت احراز هویت شد.',
 			];
 		} catch ( CdnProviderException $e ) {
 			if ( CdnProviderException::AUTHENTICATION_FAILED === $e->category
@@ -48,7 +48,7 @@ final class ApiKeyConnectionTester {
 			) {
 				return [
 					'ok'      => false,
-					'message' => 'ArvanCloud rejected this API key.',
+					'message' => 'آروان‌کلود این کلید API را رد کرد.',
 				];
 			}
 
@@ -58,7 +58,7 @@ final class ApiKeyConnectionTester {
 			// not confirm success either.
 			return [
 				'ok'      => false,
-				'message' => 'Could not confirm the connection right now — try again shortly.',
+				'message' => 'در حال حاضر امکان تأیید اتصال نبود — چند لحظه دیگر دوباره امتحان کنید.',
 			];
 		}
 	}

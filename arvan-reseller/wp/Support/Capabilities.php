@@ -91,7 +91,7 @@ final class Capabilities {
 
 		add_role(
 			self::CUSTOMER_ROLE,
-			__( 'Arvan Customer', 'arvan-reseller' ),
+			__( 'مشتری آروان', 'arvan-reseller' ),
 			[ 'read' => true ]
 		);
 	}

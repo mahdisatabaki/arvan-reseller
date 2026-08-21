@@ -78,8 +78,8 @@ final class SetupWizard {
 	public function registerPage(): void {
 		$hook = add_submenu_page(
 			'', // Hidden page: no parent menu item links to it (WordPress's documented way to do this — not null).
-			__( 'Arvan Reseller Setup', 'arvan-reseller' ),
-			__( 'Arvan Reseller Setup', 'arvan-reseller' ),
+			__( 'راه‌اندازی ریسلر آروان', 'arvan-reseller' ),
+			__( 'راه‌اندازی ریسلر آروان', 'arvan-reseller' ),
 			Capabilities::MANAGE,
 			self::PAGE_SLUG,
 			[ $this, 'render' ]
@@ -98,7 +98,7 @@ final class SetupWizard {
 	 */
 	public function handleRequest(): void {
 		if ( ! current_user_can( Capabilities::MANAGE ) ) {
-			wp_die( esc_html__( 'You do not have permission to access this page.', 'arvan-reseller' ) );
+			wp_die( esc_html__( 'شما اجازه‌ی دسترسی به این صفحه را ندارید.', 'arvan-reseller' ) );
 		}
 
 		// A finished wizard has nothing left to show here — send the admin
@@ -151,7 +151,7 @@ final class SetupWizard {
 	 */
 	public function render(): void {
 		if ( ! current_user_can( Capabilities::MANAGE ) ) {
-			wp_die( esc_html__( 'You do not have permission to access this page.', 'arvan-reseller' ) );
+			wp_die( esc_html__( 'شما اجازه‌ی دسترسی به این صفحه را ندارید.', 'arvan-reseller' ) );
 		}
 
 		$this->renderTemplate( $this->currentStepFromRequest(), $this->pendingError );
@@ -177,7 +177,7 @@ final class SetupWizard {
 			3 => $this->handleBusinessProfile(),
 			4 => $this->handleMarkupAndLifecycle(),
 			5 => $this->handleLayoutAndFinish(),
-			default => __( 'Invalid step.', 'arvan-reseller' ),
+			default => __( 'مرحله نامعتبر است.', 'arvan-reseller' ),
 		};
 	}
 
@@ -185,15 +185,15 @@ final class SetupWizard {
 		$token = isset( $_POST['access_token'] ) ? (string) wp_unslash( $_POST['access_token'] ) : '';
 
 		if ( '' === $token ) {
-			return __( 'Enter the access token provided by the hackathon team.', 'arvan-reseller' );
+			return __( 'لطفاً توکن دسترسی آروان را وارد کنید.', 'arvan-reseller' );
 		}
 
 		if ( $this->tokenGate->isRateLimited() ) {
-			return __( 'Too many failed attempts. Try again in a few minutes.', 'arvan-reseller' );
+			return __( 'تعداد تلاش‌های ناموفق بیش از حد مجاز است. چند دقیقه‌ی دیگر دوباره امتحان کنید.', 'arvan-reseller' );
 		}
 
 		if ( ! $this->tokenGate->verify( $token ) ) {
-			return __( 'That access token is not valid.', 'arvan-reseller' );
+			return __( 'توکن دسترسی معتبر نیست.', 'arvan-reseller' );
 		}
 
 		$this->advanceTo( 2 );
@@ -211,7 +211,7 @@ final class SetupWizard {
 		$plaintext = isset( $_POST['api_key'] ) ? (string) wp_unslash( $_POST['api_key'] ) : '';
 
 		if ( '' === $label || '' === $plaintext ) {
-			return __( 'Enter a label and the API key.', 'arvan-reseller' );
+			return __( 'برچسب و کلید API را وارد کنید.', 'arvan-reseller' );
 		}
 
 		$client = new ArvanCdnClient( new WordPressHttpClient(), $plaintext );
@@ -243,7 +243,7 @@ final class SetupWizard {
 		$name = isset( $_POST['name'] ) ? (string) wp_unslash( $_POST['name'] ) : '';
 
 		if ( '' === trim( $name ) ) {
-			return __( 'Business name is required.', 'arvan-reseller' );
+			return __( 'نام کسب‌وکار الزامی است.', 'arvan-reseller' );
 		}
 
 		$this->settings->setBusinessProfile(
@@ -269,7 +269,7 @@ final class SetupWizard {
 		try {
 			$rate = MarkupRate::fromPercent( $percent );
 		} catch ( InvalidArgumentException ) {
-			return __( 'Markup must be between 0% and 20%.', 'arvan-reseller' );
+			return __( 'نرخ سود باید بین ۰٪ تا ۲۰٪ باشد.', 'arvan-reseller' );
 		}
 
 		$this->settings->setMarkupRate( $rate );

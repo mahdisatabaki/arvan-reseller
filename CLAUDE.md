@@ -27,6 +27,10 @@ WordPress is the runtime/container, authentication layer, database access layer,
 - Ledger is append-only and billing is idempotent
 - Customer financial/resource data must be strictly isolated
 
+## UI Language & Direction
+
+All user-facing interfaces of Arvan Reseller must support Persian language and RTL layout — every plugin-owned screen: admin screens, the Setup Wizard, forms, buttons, labels, validation/success/error messages, help text, empty states, and settings pages. No English placeholder UI text in production-facing screens. Code identifiers, class/file names, and technical documentation stay in English.
+
 ## WordPress Boundary
 
 Allowed:
