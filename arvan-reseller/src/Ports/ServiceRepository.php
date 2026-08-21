@@ -50,6 +50,17 @@ interface ServiceRepository {
 	public function findOwnedByCustomer( int $service_id, int $customer_id ): ?array;
 
 	/**
+	 * Unscoped read by id, for admin/system contexts only (e.g. the Admin
+	 * Services "retry" action, SCREEN-SPECS.md §5, or a reconciliation job
+	 * — neither is a per-customer request with a customer id to check
+	 * against). Never call this from customer-facing code; use
+	 * `findOwnedByCustomer()` there instead (SECURITY.md §6).
+	 *
+	 * @return array<string, mixed>|null
+	 */
+	public function find( int $service_id ): ?array;
+
+	/**
 	 * Active services whose next metering period starts at or before
 	 * `$asOf` — i.e. work outstanding for MeteringService (TECH.md §5:
 	 * "determine unprocessed usage interval"). `$asOf` is caller-supplied

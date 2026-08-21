@@ -372,24 +372,37 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
   - no server credential assumptions
   - **0.25h**
 
-- [ ] **T-4.4** Resource sync/retry
+- [x] **T-4.4** Resource sync/retry
   - retry provisioning failure
   - reconcile remote/local status
   - audit mismatch
   - **0.5h**
+  - پذیرش:
+    - `src/Provisioning/ResourceSyncService.php` — قبل از هر retry، اول `getResource()` را چک می‌کند (نه مستقیم `createResource()`): طبق خودِ داک‌بلاک `createResource()` («ممکن است نیاز به reconcile قبل از retry باشد»)
+    - اگر remote از قبل منبع را دارد (mismatch: local می‌گفت failed، remote می‌گفت هست) → به‌جای create دوباره، همان resource را adopt می‌کند + audit `service.reconcile_mismatch`
+    - اگر واقعاً پیدا نشد → `createResource()` را با همان الگوی try/catch مثل `ProvisioningService` امتحان می‌کند
+    - یک متد جدید `find()` (بدون customer scoping) به `ServiceRepository` اضافه شد — برای context ادمین/سیستم که customer_id فراخوان مشخصی ندارد (SCREEN-SPECS.md §۵ «retry» روی صف سرویس‌های ادمین)
+    - **باگ واقعی پیدا و رفع شد حین تست:** پیاده‌سازی اول فقط `createResource()` را try/catch می‌کرد؛ `getResource()` هم می‌تواند برای هر دلیلی جز «پیدا نشد» (rate limit, temporary failure) پرتاب کند — که در کد قبلی uncaught می‌ماند. رفع شد: اگر چک reconcile خودش شکست بخورد، state محلی دست‌نخورده می‌ماند (نه create کورکورانه) و audit `service.reconcile_check_failed` ثبت می‌شود
+    - ۲۲ چک خودکار سبز: retry موفق (not-found)، reconcile (mismatch adoption)، شکست create بعد از reconcile موفق، شکست خودِ reconcile check، و rejectشدن retry روی سرویس غیر-failed/ناموجود
 
-**DoD:** Order → CDN Resource → Resource mapping به همان customer.
+**DoD:** ✅ Order → CDN Resource → Resource mapping به همان customer — تأیید شد با `MockCdnClient` واقعی، هم مسیر موفق (T-4.2) و هم مسیر retry/reconcile (T-4.4).
 
 ---
 
 # بلوک ۵ — Metering + Billing · 2.5h
 
-- [ ] **T-5.1** ⛔ MeteringService
+- [x] **T-5.1** ⛔ MeteringService
   - use `metered_through`
   - calculate elapsed periods
   - catch-up after delayed WP-Cron
   - fetch real/mock CDN outbound traffic only
   - **1.0h**
+  - پذیرش:
+    - `src/Metering/MeteringService.php` + `src/Metering/UsagePeriod.php` — فقط fetch/normalize، بدون هیچ نوشتن در DB یا `LedgerRepository`
+    - عمداً `markMeteredThrough()` را صدا نمی‌زند — طبق داک‌بلاک خودِ آن متد، watermark باید فقط «بعد از billed شدن» جلو برود؛ جلوبردنش اینجا یعنی اگر pricing/debit (T-5.3) بعداً شکست بخورد، آن بازه‌ی مصرف برای همیشه گم می‌شود
+    - اولویت نقطه‌ی شروع: `metered_through` → `provisioned_at` → `created_at` (اولین مقدار غیر-null)
+    - `measure()` یک سرویس + یک `CdnClient` از پیش ساخته‌شده می‌گیرد (نه حلقه‌ی داخلی روی همه‌ی سرویس‌های due) — چون هر سرویس ممکن است `api_key_id` متفاوتی داشته باشد؛ ساخت `CdnClient` واقعی نیاز به `SecretStore`+`WordPressHttpClient` (لایه‌ی WP) دارد که این کلاس دامنه‌ی خالص نباید بداند
+    - **پیاده‌سازی‌شده توسط ایجنت پس‌زمینه**، با ۱۲ چک خودکار خودش + ۴ چک بازبینی مستقل جدا (fallback اولویت، pass-through مقادیر) — بدون انحراف از بریف
 
 - [ ] **T-5.2** Billing idempotency + lock
   - unique usage period key

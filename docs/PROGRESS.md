@@ -15,8 +15,8 @@
 بلوک ۱  ██████████ 100%   تمام (۴/۴ تسک) — DoD تأیید شد: هر دو driver قابل‌تعویض‌اند
 بلوک ۲  ██████████ 100%   تمام (۴/۴ تسک) — DoD تأیید شد با کلیک واقعی روی وردپرس محلی
 بلوک ۳  ██████████ 100%   تمام (۶/۶ تسک)
-بلوک ۴  █████░░░░░  50%   T-4.1, T-4.2 تمام — بعدی: T-4.3 Delivery data
-بلوک ۵  ░░░░░░░░░░   0%
+بلوک ۴  ███████░░░  75%   T-4.1, T-4.2, T-4.4 تمام — بعدی: T-4.3 Delivery data
+بلوک ۵  ███░░░░░░░  25%   T-5.1 تمام — بعدی: T-5.2 Billing idempotency + lock
 بلوک ۶  ░░░░░░░░░░   0%
 بلوک ۷  ░░░░░░░░░░   0%
 بلوک ۸  ░░░░░░░░░░   0%
@@ -25,7 +25,7 @@
 بلوک ۱۱ ░░░░░░░░░░   0%
 ```
 
-**قدم بعدی: T-4.3 — Delivery data** (resource identifier/domain/status که provisioning برمی‌گرداند).
+**قدم بعدی: T-5.2 — Billing idempotency + lock** (سپس T-5.3 Pricing + Debit که خروجی `MeteringService` را مصرف می‌کند). T-4.3 (Delivery data، کوچک) هم هنوز باز است.
 
 **نکته‌ی محیطی:** سایت تست محلی (`arvan-test.test`) الان در وضعیت «ویزارد تمام‌شده» است. برای دموی از صفر، باید پلاگین را deactivate/activate کرد یا آپشن‌های `arvan_reseller_*` را پاک کرد.
 
@@ -47,8 +47,8 @@
 | ۱ | CDN API + Mock | ✅ تمام | 4/4 | `src/Arvan/CdnClient.php`, `CdnResource.php`, `OutboundTrafficUsage.php`, `ArvanCdnClient.php`, `MockCdnClient.php`, `CdnProviderException.php`, `src/Ports/HttpClient.php`, `wp/Http/WordPressHttpClient.php` |
 | ۲ | Reseller Setup + Secrets | ✅ تمام | 4/4 | `wp/Security/WordPressSecretStore.php`, `AccessTokenGate.php`, `data/access-token-hashes.php`, `src/Ports/ApiKeyRepository.php`, `wp/Persistence/WpApiKeyRepository.php`, `src/Arvan/ApiKeyConnectionTester.php`, `wp/Admin/ResellerSettings.php`, `SetupWizard.php`, `templates/setup-wizard.php` |
 | ۳ | Wallet + Ledger + Payment | ✅ تمام | 6/6 | `wp/Persistence/WpLedgerRepository.php`, `src/Ports/CustomerRepository.php`, `wp/Persistence/WpCustomerRepository.php`, `wp/Persistence/WpWalletRepository.php`, `wp/Persistence/WpPaymentRepository.php`, `src/Wallet/PaymentService.php`, `wp/Customer/CustomerRegistration.php`, `src/Wallet/ManualAdjustmentService.php`, `wp/Persistence/WpAuditLogger.php` |
-| ۴ | CDN Provisioning + Mapping | 🔶 در حال انجام | 2/4 | `src/Lifecycle/ServiceStatus.php`, `src/Ports/OrderRepository.php`, `wp/Persistence/WpOrderRepository.php`, `wp/Persistence/WpServiceRepository.php`, `src/Provisioning/ProvisioningService.php` |
-| ۵ | Metering + Billing | ⏳ شروع‌نشده | 0/4 | — |
+| ۴ | CDN Provisioning + Mapping | 🔶 در حال انجام | 3/4 | `src/Lifecycle/ServiceStatus.php`, `src/Ports/OrderRepository.php`, `wp/Persistence/WpOrderRepository.php`, `wp/Persistence/WpServiceRepository.php`, `src/Provisioning/ProvisioningService.php`, `src/Provisioning/ResourceSyncService.php` |
+| ۵ | Metering + Billing | 🔶 در حال انجام | 1/4 | `src/Metering/MeteringService.php`, `src/Metering/UsagePeriod.php` |
 | ۶ | Limits + Lifecycle | ⏳ شروع‌نشده | 0/5 | — |
 | ۷ | Customer Frontend | ⏳ شروع‌نشده | 0/6 | — |
 | ۸ | Reseller Admin | ⏳ شروع‌نشده | 0/5 | — |
@@ -146,6 +146,20 @@
 **تست:** ۱۸ چک با `MockCdnClient` واقعی (نه fake) — یک‌بار مسیر موفق کامل، یک‌بار مسیر شکست با `forceFailure()`؛ هر دو ترتیب دقیق فراخوان‌ها (order قبل از service، هر دو قبل از remote call) را تأیید کردند، نه فقط نتیجه‌ی نهایی.
 
 **هنوز وصل نشده به هیچ UI‌ای** — صفحه‌ی فروش CDN که این را صدا می‌زند T-7.3 است (بلوک ۷، هنوز نیست).
+
+### T-4.4 — Resource sync/retry (بستن بلوک ۴ تا T-4.3)
+
+`src/Provisioning/ResourceSyncService.php` + یک متد `find()` جدید (بدون customer scoping، برای context ادمین) روی `ServiceRepository`. منطق کلیدی: قبل از هر retry، اول `getResource()` چک می‌شود — اگر remote از قبل منبع را دارد (سناریوی «create قبلی احتمالاً موفق شد ولی پاسخش گم شد»)، آن resource adopt می‌شود به‌جای create دوباره، و mismatch با AuditLogger ثبت می‌شود.
+
+**باگ واقعی پیدا و رفع شد حین تست:** پیاده‌سازی اول فقط `createResource()` را try/catch می‌کرد. `getResource()` هم می‌تواند برای هر دلیلی جز «پیدا نشد» (rate limit مثلاً) پرتاب کند — طبق داک‌بلاک خودِ `CdnClient::getResource()`، فقط not-found به‌صورت `null` مدل‌سازی شده، نه همه‌ی خطاها. بدون این رفع، یک rate-limit موقت حین reconcile کل عملیات retry را با یک exception دستکاری‌نشده می‌ترکاند. رفع شد: اگر خودِ چک reconcile شکست بخورد، state محلی دست‌نخورده می‌ماند و audit جداگانه‌ای (`service.reconcile_check_failed`) ثبت می‌شود، به‌جای create کورکورانه یا crash.
+
+**تست:** ۲۲ چک خودکار — retry موفق (not-found → create)، reconcile (mismatch → adopt)، شکست create بعد از reconcile موفق، شکست خودِ reconcile check، رد retry روی سرویس غیر-failed یا ناموجود.
+
+### T-5.1 — MeteringService (ایجنت پس‌زمینه، اولین تسک بلوک ۵)
+
+`src/Metering/MeteringService.php` + `src/Metering/UsagePeriod.php`. فقط fetch/normalize مصرف — صریحاً هیچ نوشتنی در DB یا `LedgerRepository` ندارد و عمداً `ServiceRepository::markMeteredThrough()` را صدا نمی‌زند (طبق داک‌بلاک آن متد، watermark فقط بعد از billed شدن باید جلو برود — جلوبردنش زودتر یعنی اگر T-5.3 بعداً شکست بخورد، آن بازه‌ی مصرف برای همیشه گم می‌شود). اولویت نقطه‌ی شروع بازه: `metered_through` → `provisioned_at` → `created_at`.
+
+**تأیید مستقل:** ۱۲ چک ایجنت + ۴ چک بازبینی مستقل جدا (fallback اولویت با سه ترکیب مختلف، pass-through مقادیر) — بدون انحراف از بریف.
 
 ## تصمیم‌های باز (باید در بلوک‌های بعدی حل شوند)
 

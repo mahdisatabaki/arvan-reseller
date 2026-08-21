@@ -59,6 +59,15 @@ final class WpServiceRepository implements ServiceRepository {
 		return null === $row ? null : $row;
 	}
 
+	public function find( int $service_id ): ?array {
+		$row = $this->db->get_row(
+			$this->db->prepare( 'SELECT * FROM %i WHERE id = %d', $this->table(), $service_id ),
+			ARRAY_A
+		);
+
+		return null === $row ? null : $row;
+	}
+
 	public function dueForMetering( DateTimeImmutable $asOf ): array {
 		$rows = $this->db->get_results(
 			$this->db->prepare(
