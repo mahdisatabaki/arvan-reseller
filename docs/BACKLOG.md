@@ -287,13 +287,18 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
   - zero-balance wallet
   - **0.5h**
 
-- [ ] **T-3.4** Mock Payment
+- [x] **T-3.4** Mock Payment
   - pending
   - succeeded
   - failed
   - successful payment → exactly one CREDIT
   - duplicate callback → no duplicate credit
   - **0.75h**
+  - پذیرش:
+    - `wp/Persistence/WpPaymentRepository.php` — پیاده‌سازی پورت `PaymentRepository` (T-0.8) روی `arvan_payments`
+    - `src/Wallet/PaymentService.php` — سرویس دامنه‌ی خالص (بدون `wp_*`) که `PaymentRepository` و `LedgerRepository` را به هم وصل می‌کند؛ `confirmSucceeded()` فقط وقتی `markSucceeded()` واقعاً انتقال را انجام دهد (نه روی duplicate) وارد `LedgerRepository::append()` می‌شود — دو لایه محافظت از double-credit: گارد status روی payment + idempotency_key مجزای ledger (`payment-{id}`)
+    - `findOwnedByCustomer()` قبل از هر عملیات چک می‌شود؛ تلاش برای تأیید پرداخت مشتری دیگر خطا می‌دهد
+    - ۱۴ چک خودکار سبز: initiate idempotent، credit دقیقاً یک‌بار، duplicate confirm بدون credit دوم، رد ownership اشتباه، mark failed، و یک senario غیرمنتظره‌ی مستندشده (پرداخت failed بعداً می‌تواند confirm شود — هیچ قانونی در BILLING.md آن را منع نکرده)
 
 - [ ] **T-3.5** Manual receipt/admin adjustment
   - reason required
