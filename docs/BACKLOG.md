@@ -147,15 +147,15 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
   **Stop condition:**
   اگر API مبلغ مستقیم نمی‌دهد، `UsagePricingAdapter` فقط Outbound Traffic را با قیمت واحد configured به Base Cost تبدیل کند. این قرارداد در `API.md` ثبت شود.
 
-- [ ] **T-1.2** `CdnClient` interface
-  - `ping`
+- [x] **T-1.2** `CdnClient` interface
   - `createResource`
   - `getResource`
   - `getOutboundTrafficUsage`
-  - `holdResource`
-  - `unholdResource`
   - `deleteResource`
   - **0.25h**
+  - پذیرش:
+    - Provider-agnostic؛ هیچ DTO خام Arvan در لایه‌ی دامنه نشت نمی‌کند
+    - `ping`, `holdResource`, `unholdResource` عمداً حذف شدند — اسپایک T-1.1 مکانیزم واقعی‌شان را در API آروان پیدا نکرد؛ حدس زدن endpoint طبق CLAUDE.md §Work Protocol مجاز نیست (باز مانده تا رفع ابهام، API.md §14)
 
 - [ ] **T-1.3** `ArvanCdnClient`
   - HTTPS only

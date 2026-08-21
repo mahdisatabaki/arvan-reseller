@@ -32,44 +32,42 @@ Purpose: authenticate requests to ArvanCloud.
 
 Application code depends on a provider-neutral contract.
 
-Conceptual methods:
+**Status: finalized in T-1.2** (`src/Arvan/CdnClient.php`). Actual methods:
 
 ```text
-ping(Credential): ConnectionResult
+createResource(domain: string): CdnResource
 
-createResource(
-  Credential,
-  CreateCdnResourceRequest
-): CdnResource
-
-getResource(
-  Credential,
-  ResourceIdentifier
-): CdnResource
+getResource(domain: string): ?CdnResource
 
 getOutboundTrafficUsage(
-  Credential,
-  ResourceIdentifier,
-  Period
+  domain: string,
+  since: DateTimeImmutable,
+  until: DateTimeImmutable
 ): OutboundTrafficUsage
 
-holdResource(
-  Credential,
-  ResourceIdentifier
-): LifecycleResult
-
-unholdResource(
-  Credential,
-  ResourceIdentifier
-): LifecycleResult
-
-deleteResource(
-  Credential,
-  ResourceIdentifier
-): LifecycleResult
+deleteResource(domain: string): void
 ```
 
-Names can adapt to existing code; behavior cannot.
+Two divergences from the original conceptual sketch, both decided during T-1.2:
+
+- **No `ping`, `holdResource`, `unholdResource`.** The T-1.1 spike found no
+  confirmed ArvanCloud endpoint for a health check or a non-destructive
+  suspend/resume operation (§14 below). Per CLAUDE.md's Work Protocol, an
+  unverified endpoint is not implemented; the item stays open until a real
+  mechanism is confirmed (live-key check, or a different provider primitive
+  such as a firewall deny-all rule).
+- **No `Credential` parameter on any method.** Each `CdnClient` instance is
+  constructed already bound to one resolved API credential, rather than
+  receiving it per call. The caller (future `ProvisioningService`/
+  `LifecycleService`) resolves the service's `api_key_id` and obtains a client
+  bound to that key *before* touching the port. This still satisfies
+  DATA-MODEL.md §8's rule that lifecycle calls always use the service's
+  creating credential — the binding just happens once, at construction, not
+  on every call.
+
+`LifecycleResult` (§4) remains reserved for when `holdResource`/
+`unholdResource` are added; `deleteResource` in the finalized interface
+signals failure by throwing, not by returning it.
 
 ## 4. Domain DTOs
 
@@ -229,12 +227,10 @@ All future operations for that Service use the persisted credential.
 
 Must implement exactly the same port.
 
-Capabilities:
+Capabilities (matches the finalized four-method port, §3):
 - deterministic create,
 - resource read,
 - configurable outbound traffic,
-- hold,
-- unhold,
 - delete,
 - injectable failure states.
 

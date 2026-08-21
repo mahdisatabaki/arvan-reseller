@@ -69,6 +69,7 @@ Read only the files relevant to the current task:
 - Phase order: `docs/IMPLEMENTATION-PLAN.md`
 - Demo scenario: `docs/DEMO.md`
 - Frozen architectural decisions: `docs/DECISIONS.md`
+- Task-completion log: `docs/PROGRESS.md`
 
 `PRD.md`, `BACKLOG.md`, `BILLING.md`, `SECURITY.md`, and `DECISIONS.md` are authoritative when implementation choices conflict.
 
@@ -84,6 +85,7 @@ For each task:
 6. Do not expand scope.
 7. Do not invent Arvan API endpoints, response fields, units, or prices. If not verified, stop that integration point behind an interface/mock and record the unresolved item.
 8. Preserve backward compatibility with completed tasks unless the Backlog/Decision Log explicitly requires a migration.
+9. When the task is done: check it off in `docs/BACKLOG.md` (with its acceptance criteria, if any changed during implementation), append one entry to `docs/PROGRESS.md`, then re-scan the Source of Truth list above for any other document the change makes stale (a port signature that changed, a decision that superseded an older note, a status field that's now resolved) and update those too. Do not leave two documents disagreeing about the same fact.
 
 ## Critical Engineering Invariants
 
