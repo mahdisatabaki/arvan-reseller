@@ -413,13 +413,14 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
     - `measure()` یک سرویس + یک `CdnClient` از پیش ساخته‌شده می‌گیرد (نه حلقه‌ی داخلی روی همه‌ی سرویس‌های due) — چون هر سرویس ممکن است `api_key_id` متفاوتی داشته باشد؛ ساخت `CdnClient` واقعی نیاز به `SecretStore`+`WordPressHttpClient` (لایه‌ی WP) دارد که این کلاس دامنه‌ی خالص نباید بداند
     - **پیاده‌سازی‌شده توسط ایجنت پس‌زمینه**، با ۱۲ چک خودکار خودش + ۴ چک بازبینی مستقل جدا (fallback اولویت، pass-through مقادیر) — بدون انحراف از بریف
 
-- [ ] **T-5.2** Billing idempotency + lock
+- [x] **T-5.2** Billing idempotency + lock
   - unique usage period key
   - cron/process lock
   - duplicate execution safe
   - **0.5h**
+  - پذیرش: با T-5.3 در یک `BillingService` واحد پیاده‌سازی شد — جزئیات پذیرش زیر T-5.3
 
-- [ ] **T-5.3** Pricing + Debit
+- [x] **T-5.3** Pricing + Debit
   - `outbound_traffic_value`
   - `outbound_traffic_unit`
   - `unit_price`
@@ -430,6 +431,12 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
   - atomic wallet debit
   - negative balance preserved
   - **0.5h**
+  - پذیرش:
+    - **gap واقعی پیدا و رفع شد قبل از شروع:** تبدیل مصرف خام به هزینه‌ی ریالی نیاز به «قیمت واحد ترافیک» پیکربندی‌شده دارد (BILLING.md §۶)؛ هیچ‌جای پروژه (نه ResellerSettings، نه Setup Wizard) این را نمی‌گرفت. با تأیید کاربر، فیلد «قیمت هر گیگابایت ترافیک» به قدم ۴ ویزارد اضافه شد (`ResellerSettings::setPricing()`/`getUnitPriceRialPerGb()`، ذخیره در همان `OPTION_PRICING` کنار markup) و **زنده روی وردپرس محلی تست شد** (submit واقعی، مقدار در DB به‌درستی ریال‌شده تأیید شد: ۱۵۰۰ تومان → ۱۵۰۰۰ ریال)
+    - `src/Metering/UsagePricingAdapter.php` — `base_cost = usage_bytes × (قیمت‌واحد ÷ 10^9)`؛ واحد غیر از `byte` صراحتاً خطا می‌دهد (بدون حدس)
+    - `src/Ports/UsageLogRepository.php` (پورت جدید) + `wp/Persistence/WpUsageLogRepository.php` — الگوی «برگرداندن سطر موجود روی تکرار» روی همان unique key دیتابیس `(service_id, period_start)`
+    - `src/Billing/BillingService.php` — T-5.2 و T-5.3 در عمل یک عملیات اتمیک‌اند، جدا پیاده‌سازی نشدند. **نکته‌ی طراحی حیاتی:** کلید idempotency فقط از `service_id + period_start` ساخته می‌شود، **نه** `period_end` — چون `period_end` همان `Clock::now()` لحظه‌ی هر فراخوانی است و بین دو اجرای هم‌زمان (race واقعی که T-5.2 باید جلویش را بگیرد) یکی نیست؛ کلیدسازی روی آن دقیقاً همان race را باز می‌گذاشت. این تصمیم با یک تست اختصاصی (سناریوی C زیر) تأیید شد، نه فقط استدلال شد
+    - ۱۷ چک خودکار سبز: صحت Base+Markup (۵GB × ۱۰,۰۰۰ریال=۵۰,۰۰۰ پایه، ۲۰٪=۱۰,۰۰۰ سود، ۶۰,۰۰۰ کل)، تکرار دقیق بدون debit دوم، **race واقعی** (همان period_start، period_end/مصرف متفاوت) بدون debit دوم، موجودی منفی حفظ‌شده، رد واحد پشتیبانی‌نشده بدون دست‌زدن به کیف‌پول
 
 - [ ] **T-5.4** Demo billing trigger
   - `Run Billing Cycle Now`

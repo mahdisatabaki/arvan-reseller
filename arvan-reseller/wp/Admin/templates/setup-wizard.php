@@ -28,6 +28,7 @@
  * @var array{name:string, logo_url:string, website:string, email:string, phone:string, about:string} $businessProfile
  * @var array{notify_threshold_rial:int, resume_threshold_rial:int, terminate_grace_days:int} $lifecyclePolicy
  * @var float $markupPercent
+ * @var int $unitPriceToman
  * @var bool $rateLimited
  * @var string $nonceAction
  * @var string $pageSlug
@@ -187,6 +188,14 @@ $step_labels = [
 					</td>
 				</tr>
 				<tr>
+					<th><label for="unit_price_toman_per_gb"><?php esc_html_e( 'قیمت هر گیگابایت ترافیک (تومان)', 'arvan-reseller' ); ?></label></th>
+					<td>
+						<input type="number" id="unit_price_toman_per_gb" name="unit_price_toman_per_gb" min="0"
+							value="<?php echo esc_attr( (string) $unitPriceToman ); ?>" />
+						<p class="description"><?php esc_html_e( 'مبلغی که شما به‌ازای هر گیگابایت ترافیک خروجی CDN به آروان می‌پردازید — مبنای محاسبه‌ی هزینه‌ی پایه پیش از اعمال نرخ سود.', 'arvan-reseller' ); ?></p>
+					</td>
+				</tr>
+				<tr>
 					<th><label for="notify_threshold_toman"><?php esc_html_e( 'هشدار اعتبار کم (تومان)', 'arvan-reseller' ); ?></label></th>
 					<td><input type="number" id="notify_threshold_toman" name="notify_threshold_toman" min="0"
 						value="<?php echo esc_attr( (string) intdiv( $lifecyclePolicy['notify_threshold_rial'], 10 ) ); ?>" /></td>
@@ -219,6 +228,18 @@ $step_labels = [
 							/* translators: %s: markup percentage */
 							esc_html__( '%s٪', 'arvan-reseller' ),
 							esc_html( (string) $markupPercent )
+						);
+						?>
+					</td>
+				</tr>
+				<tr>
+					<th><?php esc_html_e( 'قیمت هر گیگابایت ترافیک', 'arvan-reseller' ); ?></th>
+					<td>
+						<?php
+						printf(
+							/* translators: %s: amount in Toman */
+							esc_html__( '%s تومان', 'arvan-reseller' ),
+							esc_html( (string) $unitPriceToman )
 						);
 						?>
 					</td>

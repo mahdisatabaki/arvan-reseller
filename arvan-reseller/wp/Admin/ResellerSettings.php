@@ -90,8 +90,34 @@ final class ResellerSettings {
 		return MarkupRate::fromBasisPoints( (int) ( $pricing['markup_bps'] ?? 0 ) );
 	}
 
-	public function setMarkupRate( MarkupRate $rate ): void {
-		update_option( self::OPTION_PRICING, [ 'markup_bps' => $rate->toBasisPoints() ] );
+	/**
+	 * BILLING.md §6: ArvanCloud's traffic report returns a raw usage figure,
+	 * not a monetary cost (T-1.1 spike), so `base_cost = usage × configured
+	 * unit price` needs this reseller-set price to exist at all. Priced per
+	 * gigabyte (10^9 bytes — decimal GB, the conventional bandwidth-billing
+	 * unit) rather than per byte, since a per-byte Rial price would round to
+	 * zero for any realistic value and money here is always an integer Rial.
+	 */
+	public function getUnitPriceRialPerGb(): int {
+		$pricing = (array) get_option( self::OPTION_PRICING, [] );
+
+		return max( 0, (int) ( $pricing['unit_price_rial_per_gb'] ?? 0 ) );
+	}
+
+	/**
+	 * Markup and the traffic unit price are written together because both
+	 * live in the same option (`OPTION_PRICING`) and `update_option()`
+	 * replaces the whole value — a separate `setMarkupRate()` would silently
+	 * wipe out whatever unit price was already stored, and vice versa.
+	 */
+	public function setPricing( MarkupRate $rate, int $unitPriceRialPerGb ): void {
+		update_option(
+			self::OPTION_PRICING,
+			[
+				'markup_bps'             => $rate->toBasisPoints(),
+				'unit_price_rial_per_gb' => max( 0, $unitPriceRialPerGb ),
+			]
+		);
 	}
 
 	/**

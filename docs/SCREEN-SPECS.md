@@ -176,6 +176,7 @@ Tabs:
 - Add/Test/Disable
 
 ### Pricing
+- Unit price per gigabyte of CDN outbound traffic (Toman) — what the reseller pays ArvanCloud; base for the markup calculation (added T-5.3, since Billing needs it to convert raw usage into a Rial cost)
 - Markup 0–20%
 - example calculation
 

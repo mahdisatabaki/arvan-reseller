@@ -16,7 +16,7 @@
 بلوک ۲  ██████████ 100%   تمام (۴/۴ تسک) — DoD تأیید شد با کلیک واقعی روی وردپرس محلی
 بلوک ۳  ██████████ 100%   تمام (۶/۶ تسک)
 بلوک ۴  ██████████ 100%   تمام (۴/۴ تسک)
-بلوک ۵  ███░░░░░░░  25%   T-5.1 تمام — در حال کار: T-5.2+T-5.3 با هم (BillingService)
+بلوک ۵  ███████░░░  75%   T-5.1, T-5.2, T-5.3 تمام — بعدی: T-5.4 Demo billing trigger
 بلوک ۶  ░░░░░░░░░░   0%
 بلوک ۷  ░░░░░░░░░░   0%
 بلوک ۸  ░░░░░░░░░░   0%
@@ -25,7 +25,7 @@
 بلوک ۱۱ ░░░░░░░░░░   0%
 ```
 
-**قدم بعدی: T-5.2+T-5.3 با هم (`BillingService`)** — یک gap واقعی حین طراحی پیدا شد: تبدیل مصرف خام (بایت) به هزینه‌ی ریالی نیاز به «قیمت واحد» پیکربندی‌شده دارد که هیچ‌جا وجود نداشت؛ با تأیید کاربر یک فیلد جدید به Setup Wizard قدم ۴ اضافه شد (کد آماده، تست زنده مانده چون سشن مرورگر منقضی شد).
+**قدم بعدی: T-5.4 — Demo billing trigger** («Run Billing Cycle Now»، اولین trigger واقعی برای `MeteringService`+`BillingService`).
 
 **نکته‌ی محیطی:** سایت تست محلی (`arvan-test.test`) الان در وضعیت «ویزارد تمام‌شده» است. برای دموی از صفر، باید پلاگین را deactivate/activate کرد یا آپشن‌های `arvan_reseller_*` را پاک کرد.
 
@@ -48,7 +48,7 @@
 | ۲ | Reseller Setup + Secrets | ✅ تمام | 4/4 | `wp/Security/WordPressSecretStore.php`, `AccessTokenGate.php`, `data/access-token-hashes.php`, `src/Ports/ApiKeyRepository.php`, `wp/Persistence/WpApiKeyRepository.php`, `src/Arvan/ApiKeyConnectionTester.php`, `wp/Admin/ResellerSettings.php`, `SetupWizard.php`, `templates/setup-wizard.php` |
 | ۳ | Wallet + Ledger + Payment | ✅ تمام | 6/6 | `wp/Persistence/WpLedgerRepository.php`, `src/Ports/CustomerRepository.php`, `wp/Persistence/WpCustomerRepository.php`, `wp/Persistence/WpWalletRepository.php`, `wp/Persistence/WpPaymentRepository.php`, `src/Wallet/PaymentService.php`, `wp/Customer/CustomerRegistration.php`, `src/Wallet/ManualAdjustmentService.php`, `wp/Persistence/WpAuditLogger.php` |
 | ۴ | CDN Provisioning + Mapping | ✅ تمام | 4/4 | `src/Lifecycle/ServiceStatus.php`, `src/Ports/OrderRepository.php`, `wp/Persistence/WpOrderRepository.php`, `wp/Persistence/WpServiceRepository.php`, `src/Provisioning/ProvisioningService.php`, `src/Provisioning/ResourceSyncService.php`, `src/Provisioning/DeliveryData.php` |
-| ۵ | Metering + Billing | 🔶 در حال انجام | 1/4 | `src/Metering/MeteringService.php`, `src/Metering/UsagePeriod.php` |
+| ۵ | Metering + Billing | 🔶 در حال انجام | 3/4 | `src/Metering/MeteringService.php`, `src/Metering/UsagePeriod.php`, `src/Metering/UsagePricingAdapter.php`, `src/Ports/UsageLogRepository.php`, `wp/Persistence/WpUsageLogRepository.php`, `src/Billing/BillingService.php` |
 | ۶ | Limits + Lifecycle | ⏳ شروع‌نشده | 0/5 | — |
 | ۷ | Customer Frontend | ⏳ شروع‌نشده | 0/6 | — |
 | ۸ | Reseller Admin | ⏳ شروع‌نشده | 0/5 | — |
@@ -172,6 +172,16 @@
 فقط تست — هیچ فایل `src/`/`wp/` تغییر نکرد. ۳۳ چک خودکار سبز، **هیچ باگ واقعی پیدا نشد**. برجسته‌ترین بخش: آزمون ۱۰۰۰ عملیات پیاپی واقعی (نه شبیه‌سازی‌شده، هر کدام idempotency_key منحصربه‌فرد) روی `WpLedgerRepository::append()` — موجودی محاسبه‌شده‌ی مستقل، موجودی `WalletRepository`، و `balance_after_rial` آخرین سطر ledger هر سه دقیقاً ۲۸۵۳۷ شدند؛ به‌علاوه تست isolation با interleave واقعی بین دو مشتری (نه پشت‌سرهم).
 
 **بستن بلوک ۳ — DoD:** ✅ Wallet/Ledger قابل reconciliation و duplicate-safe.
+
+### T-5.2 + T-5.3 — Billing idempotency + Pricing/Debit (یک `BillingService` واحد)
+
+قبل از شروع، یک gap واقعی پیدا شد: تبدیل مصرف خام (بایت) به هزینه‌ی ریالی طبق BILLING.md §۶ نیاز به «قیمت واحد ترافیک» پیکربندی‌شده دارد، ولی هیچ‌جای پروژه این را نمی‌گرفت. با تأیید کاربر، یک فیلد «قیمت هر گیگابایت ترافیک (تومان)» به قدم ۴ Setup Wizard اضافه شد — `ResellerSettings::setPricing()` جایگزین `setMarkupRate()` شد (چون هر دو فیلد در یک آپشن هستند و `update_option` مقدار قبلی را کامل جایگزین می‌کند، نه merge). **زنده روی `arvan-test.test` تست شد:** submit واقعی با ۱۵۰۰ تومان، مقدار در دیتابیس به‌درستی ۱۵۰۰۰ ریال ذخیره شد، markup_bps کنارش دست‌نخورده ماند، خلاصه‌ی قدم ۵ هم درست نمایش داد.
+
+سپس: `src/Metering/UsagePricingAdapter.php` (bytes→GB→Rial، رد صریح واحد غیر از `byte`) + `src/Ports/UsageLogRepository.php`/`WpUsageLogRepository.php` (پورت جدید، الگوی «برگردان سطر موجود») + `src/Billing/BillingService.php`.
+
+**مهم‌ترین تصمیم طراحی:** کلید idempotency برای debit فقط از `service_id + period_start` ساخته می‌شود، نه `period_end`. چون `period_end` = `Clock::now()` لحظه‌ی هر فراخوانی است، دو اجرای هم‌زمان (دقیقاً همان race که T-5.2 باید جلویش را بگیرد) `period_end` متفاوت می‌گیرند — کلیدسازی روی آن idempotency را در دقیقاً همان سناریو می‌شکست. این مطابق unique key خودِ جدول `arvan_usage_log` است: `(service_id, period_start)` تنها، نه period_end.
+
+**تست:** ۱۷ چک خودکار، شامل یک سناریوی اختصاصی برای همین race (همان period_start، period_end/مقدار مصرف متفاوت — شبیه‌سازی دو اجرای هم‌زمان قبل از پیشرفت watermark) که تأیید کرد فقط یک debit اتفاق می‌افتد، نه صرفاً استدلال نظری.
 
 ## تصمیم‌های باز (باید در بلوک‌های بعدی حل شوند)
 

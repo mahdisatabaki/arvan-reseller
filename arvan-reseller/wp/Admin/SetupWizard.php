@@ -272,7 +272,13 @@ final class SetupWizard {
 			return __( 'نرخ سود باید بین ۰٪ تا ۲۰٪ باشد.', 'arvan-reseller' );
 		}
 
-		$this->settings->setMarkupRate( $rate );
+		$unitPriceToman = isset( $_POST['unit_price_toman_per_gb'] ) ? (int) $_POST['unit_price_toman_per_gb'] : 0;
+
+		if ( $unitPriceToman < 0 ) {
+			return __( 'قیمت هر گیگابایت ترافیک نمی‌تواند منفی باشد.', 'arvan-reseller' );
+		}
+
+		$this->settings->setPricing( $rate, Money::fromToman( $unitPriceToman )->toRial() );
 
 		$notifyToman = isset( $_POST['notify_threshold_toman'] ) ? (int) $_POST['notify_threshold_toman'] : 0;
 		$resumeToman = isset( $_POST['resume_threshold_toman'] ) ? (int) $_POST['resume_threshold_toman'] : 0;
@@ -318,6 +324,7 @@ final class SetupWizard {
 		$businessProfile = $this->settings->getBusinessProfile();
 		$lifecyclePolicy = $this->settings->getLifecyclePolicy();
 		$markupPercent   = $this->settings->getMarkupRate()->toPercent();
+		$unitPriceToman  = Money::fromRial( $this->settings->getUnitPriceRialPerGb() )->toToman();
 		$layout          = $this->settings->getLayout();
 		$rateLimited     = $this->tokenGate->isRateLimited();
 		$nonceAction     = $this->nonceAction( $step );
