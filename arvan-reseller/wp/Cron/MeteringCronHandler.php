@@ -22,6 +22,11 @@
  * this lock exists to avoid wasted duplicate provider API calls, not as
  * the safety mechanism itself.
  *
+ * After a successful debit, this is also where `SuspensionEngine` (T-6.3)
+ * and `LowBalanceNotifier` (T-6.2) get their one call each — both read the
+ * post-debit balance `BillingService::bill()` already returned, so neither
+ * needs its own extra wallet read.
+ *
  * @package ArvanReseller
  */
 
@@ -34,12 +39,17 @@ use ArvanReseller\Arvan\CdnClient;
 use ArvanReseller\Arvan\CdnProviderException;
 use ArvanReseller\Billing\BillingService;
 use ArvanReseller\Domain\Money;
+use ArvanReseller\Lifecycle\SuspensionEngine;
+use ArvanReseller\Lifecycle\ThresholdPolicyResolver;
 use ArvanReseller\Metering\MeteringService;
 use ArvanReseller\Ports\ApiKeyRepository;
 use ArvanReseller\Ports\Clock;
+use ArvanReseller\Ports\CustomerRepository;
 use ArvanReseller\Ports\SecretStore;
 use ArvanReseller\Ports\ServiceRepository;
+use ArvanReseller\Ports\WalletRepository;
 use ArvanReseller\Pricing\MarkupRate;
+use ArvanReseller\Wallet\LowBalanceNotifier;
 use ArvanReseller\Wp\Admin\ResellerSettings;
 use ArvanReseller\Wp\Http\WordPressHttpClient;
 use ArvanReseller\Wp\Support\Capabilities;
@@ -60,7 +70,12 @@ final class MeteringCronHandler {
 		private readonly MeteringService $metering,
 		private readonly BillingService $billing,
 		private readonly ResellerSettings $settings,
-		private readonly Clock $clock
+		private readonly Clock $clock,
+		private readonly WalletRepository $wallets,
+		private readonly CustomerRepository $customers,
+		private readonly SuspensionEngine $suspension,
+		private readonly ThresholdPolicyResolver $thresholds,
+		private readonly LowBalanceNotifier $notifier
 	) {}
 
 	public function register(): void {
@@ -82,7 +97,7 @@ final class MeteringCronHandler {
 
 		check_admin_referer( self::MANUAL_ACTION );
 
-		$this->run();
+		$this->run( get_current_user_id() ?: null );
 
 		wp_safe_redirect( wp_get_referer() ?: admin_url( 'index.php' ) );
 		exit;
@@ -91,7 +106,7 @@ final class MeteringCronHandler {
 	/**
 	 * @return array{ok: bool, processed: int, results: array<int, array<string, mixed>>}
 	 */
-	public function run(): array {
+	public function run( ?int $actorWpUserId = null ): array {
 		if ( false !== get_transient( self::LOCK_TRANSIENT ) ) {
 			return [ 'ok' => false, 'processed' => 0, 'results' => [] ];
 		}
@@ -99,7 +114,7 @@ final class MeteringCronHandler {
 		set_transient( self::LOCK_TRANSIENT, 1, self::LOCK_TTL );
 
 		try {
-			return $this->processDue();
+			return $this->processDue( $actorWpUserId );
 		} finally {
 			delete_transient( self::LOCK_TRANSIENT );
 		}
@@ -108,14 +123,14 @@ final class MeteringCronHandler {
 	/**
 	 * @return array{ok: bool, processed: int, results: array<int, array<string, mixed>>}
 	 */
-	private function processDue(): array {
+	private function processDue( ?int $actorWpUserId ): array {
 		$due        = $this->services->dueForMetering( $this->clock->now() );
 		$markupRate = $this->settings->getMarkupRate();
 		$unitPrice  = Money::fromRial( $this->settings->getUnitPriceRialPerGb() );
 		$results    = [];
 
 		foreach ( $due as $service ) {
-			$results[] = $this->processOne( $service, $markupRate, $unitPrice );
+			$results[] = $this->processOne( $service, $markupRate, $unitPrice, $actorWpUserId );
 		}
 
 		return [
@@ -129,9 +144,10 @@ final class MeteringCronHandler {
 	 * @param array<string, mixed> $service
 	 * @return array<string, mixed>
 	 */
-	private function processOne( array $service, MarkupRate $markupRate, Money $unitPrice ): array {
-		$serviceId = (int) $service['id'];
-		$client    = $this->resolveClient( (int) ( $service['api_key_id'] ?? 0 ) );
+	private function processOne( array $service, MarkupRate $markupRate, Money $unitPrice, ?int $actorWpUserId ): array {
+		$serviceId  = (int) $service['id'];
+		$customerId = (int) $service['customer_id'];
+		$client     = $this->resolveClient( (int) ( $service['api_key_id'] ?? 0 ) );
 
 		if ( null === $client ) {
 			return [
@@ -151,7 +167,48 @@ final class MeteringCronHandler {
 			];
 		}
 
-		return [ 'service_id' => $serviceId ] + $this->billing->bill( $usage, $markupRate, $unitPrice );
+		$previousBalance = $this->wallets->currentBalance( $customerId );
+		$result          = $this->billing->bill( $usage, $markupRate, $unitPrice );
+
+		if ( $result['ok'] && null !== $result['balance'] ) {
+			$this->applyLifecycleEffects( $serviceId, $customerId, $previousBalance, $result['balance'], $result['usage_log_id'], $actorWpUserId );
+		}
+
+		return [ 'service_id' => $serviceId ] + $result;
+	}
+
+	/**
+	 * Suspend-on-zero-balance (T-6.3) and the low-balance notice (T-6.2) both
+	 * hang off the same post-debit balance, in the same request, per
+	 * BILLING.md §14's "invoke SuspensionEngine in the same billing workflow"
+	 * — neither waits for a separate cron pass.
+	 */
+	private function applyLifecycleEffects(
+		int $serviceId,
+		int $customerId,
+		Money $previousBalance,
+		Money $newBalance,
+		?int $usageLogId,
+		?int $actorWpUserId
+	): void {
+		$this->suspension->suspendIfNeeded( $serviceId, $customerId, $newBalance, $actorWpUserId );
+
+		$customer = $this->customers->find( $customerId );
+
+		if ( null === $customer || '' === (string) ( $customer['email'] ?? '' ) ) {
+			return;
+		}
+
+		$policy = $this->thresholds->resolve( $customerId, $this->settings->getLifecyclePolicy()['terminate_grace_days'] );
+
+		$this->notifier->notifyIfCrossed(
+			$customerId,
+			(string) $customer['email'],
+			$previousBalance,
+			$newBalance,
+			$policy->lowBalanceThreshold,
+			'usage-log-' . $usageLogId
+		);
 	}
 
 	private function resolveClient( int $api_key_id ): ?CdnClient {

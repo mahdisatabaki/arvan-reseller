@@ -149,6 +149,7 @@ State what is real vs simulated:
 - Settlement is Mock if no official endpoint
 - Provider mode clearly named
 - CDN is the single complete product.
+- Suspend is local-status only: no confirmed ArvanCloud hold/unhold endpoint exists (T-1.1), so a suspended service's wallet/UI state changes but the real CDN resource keeps serving traffic. State this plainly rather than letting the demo imply a remote block.
 
 ## 4. Recording Checklist
 

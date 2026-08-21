@@ -55,7 +55,7 @@ final class BillingService {
 	) {}
 
 	/**
-	 * @return array{ok: bool, billed: bool, charge: ?ChargeBreakdown, usage_log_id: ?int, message: ?string}
+	 * @return array{ok: bool, billed: bool, charge: ?ChargeBreakdown, usage_log_id: ?int, balance: ?Money, message: ?string}
 	 */
 	public function bill( UsagePeriod $usage, MarkupRate $markupRate, Money $unitPriceRialPerGb ): array {
 		try {
@@ -66,13 +66,14 @@ final class BillingService {
 				'billed'       => false,
 				'charge'       => null,
 				'usage_log_id' => null,
+				'balance'      => null,
 				'message'      => $e->getMessage(),
 			];
 		}
 
 		$charge = ( new ResellerPricing( $markupRate ) )->charge( $baseCost );
 
-		$this->ledger->append(
+		$balance = $this->ledger->append(
 			$usage->customerId,
 			'usage_debit',
 			$charge->total->negated(),
@@ -109,6 +110,7 @@ final class BillingService {
 			'billed'       => $log['created'],
 			'charge'       => $charge,
 			'usage_log_id' => $log['id'],
+			'balance'      => $balance,
 			'message'      => null,
 		];
 	}

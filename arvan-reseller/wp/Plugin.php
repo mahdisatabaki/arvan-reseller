@@ -15,8 +15,11 @@ namespace ArvanReseller\Wp;
 
 use ArvanReseller\Arvan\ApiKeyConnectionTester;
 use ArvanReseller\Billing\BillingService;
+use ArvanReseller\Lifecycle\SuspensionEngine;
+use ArvanReseller\Lifecycle\ThresholdPolicyResolver;
 use ArvanReseller\Metering\MeteringService;
 use ArvanReseller\Metering\UsagePricingAdapter;
+use ArvanReseller\Wallet\LowBalanceNotifier;
 use ArvanReseller\Wp\Admin\ResellerSettings;
 use ArvanReseller\Wp\Admin\SetupWizard;
 use ArvanReseller\Wp\Cron\MeteringCronHandler;
@@ -24,12 +27,15 @@ use ArvanReseller\Wp\Cron\Scheduler;
 use ArvanReseller\Wp\Customer\CustomerRegistration;
 use ArvanReseller\Wp\Installation\Installer;
 use ArvanReseller\Wp\Persistence\WpApiKeyRepository;
+use ArvanReseller\Wp\Persistence\WpAuditLogger;
 use ArvanReseller\Wp\Persistence\WpCustomerRepository;
 use ArvanReseller\Wp\Persistence\WpLedgerRepository;
+use ArvanReseller\Wp\Persistence\WpNotificationRepository;
 use ArvanReseller\Wp\Persistence\WpServiceRepository;
 use ArvanReseller\Wp\Persistence\WpUsageLogRepository;
 use ArvanReseller\Wp\Persistence\WpWalletRepository;
 use ArvanReseller\Wp\Security\AccessTokenGate;
+use ArvanReseller\Wp\Security\WordPressMailer;
 use ArvanReseller\Wp\Security\WordPressSecretStore;
 use ArvanReseller\Wp\Support\SystemClock;
 
@@ -109,7 +115,12 @@ final class Plugin {
 				new WpServiceRepository( $wpdb )
 			),
 			new ResellerSettings(),
-			new SystemClock()
+			new SystemClock(),
+			new WpWalletRepository( $wpdb ),
+			new WpCustomerRepository( $wpdb ),
+			new SuspensionEngine( new WpServiceRepository( $wpdb ), new WpAuditLogger( $wpdb ) ),
+			new ThresholdPolicyResolver( new WpWalletRepository( $wpdb ) ),
+			new LowBalanceNotifier( new WordPressMailer(), new WpNotificationRepository( $wpdb ) )
 		);
 
 		$handler->register();

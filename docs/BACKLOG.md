@@ -458,19 +458,29 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
 
 # بلوک ۶ — Limits + Lifecycle · 2.25h
 
-- [ ] **T-6.1** ThresholdPolicy
+- [x] **T-6.1** ThresholdPolicy
   - low balance threshold
   - resume threshold
   - terminate grace period
   - **0.25h**
+  - پذیرش:
+    - `src/Lifecycle/ThresholdPolicy.php` (DTO خواندنی) + `ThresholdPolicyResolver.php` (سازنده، فقط به پورت `WalletRepository` وابسته)
+    - `terminate_grace_days` به‌عنوان پارامتر ساده گرفته می‌شود، نه با import کردن `ResellerSettings` داخل `src/` — چون آن کلاس در لایه‌ی WP است و این‌جا مجاز نیست
+    - ۵ چک خودکار سبز
 
-- [ ] **T-6.2** Low Balance Notification
+- [x] **T-6.2** Low Balance Notification
   - create notification event
   - email attempt
   - dedupe key
   - **0.5h**
+  - پذیرش:
+    - `src/Ports/NotificationRepository.php` (پورت جدید) + `wp/Persistence/WpNotificationRepository.php` روی `arvan_notifications`
+    - `wp/Security/WordPressMailer.php` — اولین پیاده‌سازی پورت `Mailer` (T-0.8)، روی `wp_mail()`
+    - `src/Wallet/LowBalanceNotifier.php` — تشخیص «عبور از آستانه» دقیقاً یک‌طرفه: `previous_balance > threshold` و `new_balance <= threshold`؛ فقط همان لحظه‌ی عبور، نه هر بار که موجودی زیر آستانه بماند
+    - **تصمیم طراحی:** `record()` قبل از `send()` صدا زده می‌شود (نه بعد) — چون تنها راه تشخیص «این تکرار cron است» از «این بار اول است»، خودِ `record()` است؛ اگر اول ایمیل می‌رفت، تکرار cron قبل از فهمیدن دوباره ایمیل می‌فرستاد. اگر ارسال شکست بخورد، یک `record()` دوم فقط `status` را اصلاح می‌کند (نه سطر جدید، چون `dedupe_key` یکتاست)
+    - ۱۸ چک خودکار (بازبینی مستقل، چون ایجنت وسط اجرا قطع شد ولی فایل‌ها کامل و درست بودند) — شامل مورد مرزی دقیق (`50001>50000` و `50000<=50000` باید عبور حساب شود)
 
-- [ ] **T-6.3** ⛔ Suspend inline
+- [x] **T-6.3** ⛔ Suspend inline
   - BillingService بعد از Debit:
     ```text
     if balance <= 0
@@ -480,6 +490,11 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
   - same `api_key_id` that created service
   - customer-scoped
   - **0.5h**
+  - پذیرش:
+    - **تصمیم محصولی با کاربر:** چون هیچ API واقعی hold/unhold روی آروان تأیید نشده (باز از T-1.1)، Suspend فقط وضعیت محلی است — بدون تماس remote. مستند شده در docblock خودِ `SuspensionEngine` و در PROGRESS.md
+    - `src/Lifecycle/SuspensionEngine.php` — idempotent: فقط وقتی `balance <= 0` **و** وضعیت فعلی سرویس `active` باشد کاری می‌کند؛ فراخوانی دوباره (retry، یا periodهای بعدی که موجودی هنوز منفی است) هیچ اثری ندارد
+    - `BillingService::bill()` حالا `balance` (موجودی بعد از debit، از خروجی `LedgerRepository::append()`) را هم در نتیجه برمی‌گرداند — فراخوان (`MeteringCronHandler`) این را می‌خواند و `SuspensionEngine`+`LowBalanceNotifier` را در همان چرخه صدا می‌زند، دقیقاً طبق BILLING.md §۱۴ «همان billing workflow، نه cron جدا»
+    - ۱۵ چک خودکار روی `SuspensionEngine` تنها + ۷ چک integration کامل (با `MockCdnClient` واقعی + `MeteringService`+`BillingService`+`SuspensionEngine`+`LowBalanceNotifier` با هم) که هر دو سناریو را تأیید کرد: عبور از آستانه بدون رسیدن به صفر (فقط notify)، و رسیدن دقیق به صفر (suspend + notify با هم)
 
 - [ ] **T-6.4** Resume after Recharge
   - if suspension reason = wallet
