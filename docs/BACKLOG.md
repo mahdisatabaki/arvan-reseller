@@ -61,9 +61,9 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
 
 ---
 
-# بلوک ۰ — Foundation Correction · 1h remaining
+# بلوک ۰ — Foundation Correction · 0h remaining
 
-- [ ] **T-0.0** ⛔ محیط توسعه کامل
+- [x] **T-0.0** ⛔ محیط توسعه کامل
   - PHP 8.1+
   - MySQL/MariaDB
   - WordPress clean install
@@ -83,7 +83,7 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
 
 - [x] **T-0.6** Money/Pricing foundation
 
-- [ ] **T-0.7** ⛔ اصلاح Pricing implementation
+- [x] **T-0.7** ⛔ اصلاح Pricing implementation
   - حذف `Commission`
   - حذف `MarginMode`
   - فقط `MarkupRate`
@@ -95,7 +95,7 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
     - Base 100 → Markup 20% → Total 120
     - 25% throws validation error
 
-- [ ] **T-0.75** مرز WordPress/Business Logic
+- [x] **T-0.75** مرز WordPress/Business Logic
   - استفاده از Hooks و `$wpdb` مجاز است.
   - Auth با WordPress users.
   - Persistence با Custom Tables.
@@ -103,7 +103,7 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
   - هیچ تلاش برای حذف کامل WordPress APIs انجام نشود.
   - **0.0h — rule only**
 
-- [ ] **T-0.8** Port interfaces نهایی
+- [x] **T-0.8** Port interfaces نهایی
   - `WalletRepository`
   - `LedgerRepository`
   - `ServiceRepository`

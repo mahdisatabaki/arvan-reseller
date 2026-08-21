@@ -72,6 +72,14 @@ final class Scheduler {
 	}
 
 	public static function schedule(): void {
+		// Activation can run before `plugins_loaded` fires for this plugin
+		// (the plugin file is only included when the activation hook runs,
+		// after WordPress's own `plugins_loaded` pass already completed), so
+		// Plugin::boot()'s cron_schedules filter may not be attached yet.
+		// Register it here too — add_filter() is idempotent for the same
+		// callback — so the custom recurrences below always resolve.
+		add_filter( 'cron_schedules', [ self::class, 'addIntervals' ] );
+
 		foreach ( self::jobs() as $hook => [ $recurrence, $offset ] ) {
 			if ( ! wp_next_scheduled( $hook ) ) {
 				wp_schedule_event( time() + $offset, $recurrence, $hook );
