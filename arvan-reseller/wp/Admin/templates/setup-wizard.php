@@ -47,8 +47,13 @@ $step_labels = [
 <div class="wrap arvan-setup-wizard" dir="rtl" lang="fa">
 	<style>
 		.arvan-setup-wizard { direction: rtl; text-align: right; }
-		.arvan-setup-wizard .arvan-wizard-progress { display: flex; gap: 1.5em; list-style: none; padding-right: 0; }
-		.arvan-setup-wizard .form-table th { text-align: right; padding-right: 0; }
+		.arvan-setup-wizard h1 { font-size: 26px; font-weight: 700; margin: 0 0 18px; padding: 0; }
+		.arvan-setup-wizard .arvan-wizard-progress { display: flex; gap: 1.5em; list-style: none; margin: 0 0 20px; padding: 0; }
+		.arvan-setup-wizard .arvan-wizard-progress a,
+		.arvan-setup-wizard .arvan-wizard-progress span { font-weight: 600; }
+		.arvan-setup-wizard .arvan-wizard-progress li[aria-current="step"] a,
+		.arvan-setup-wizard .arvan-wizard-progress li[aria-current="step"] span { font-weight: 700; }
+		.arvan-setup-wizard .form-table th { text-align: right; padding-right: 0; font-weight: 700; font-size: 14px; }
 		.arvan-setup-wizard .form-table td { text-align: right; }
 		.arvan-setup-wizard input[type="text"],
 		.arvan-setup-wizard input[type="url"],
