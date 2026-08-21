@@ -24,7 +24,7 @@ final class WpWalletRepository implements WalletRepository {
 
 	public function __construct( private readonly wpdb $db ) {}
 
-	public function ensureExists( int $customer_id ): void {
+	public function ensureExists( int $customer_id, Money $notify_threshold, Money $resume_threshold ): void {
 		if ( null !== $this->find( $customer_id ) ) {
 			return;
 		}
@@ -34,11 +34,13 @@ final class WpWalletRepository implements WalletRepository {
 		$this->db->insert(
 			$this->table(),
 			[
-				'customer_id' => $customer_id,
-				'created_at'  => $now,
-				'updated_at'  => $now,
+				'customer_id'           => $customer_id,
+				'notify_threshold_rial' => $notify_threshold->toRial(),
+				'resume_threshold_rial' => $resume_threshold->toRial(),
+				'created_at'            => $now,
+				'updated_at'            => $now,
 			],
-			[ '%d', '%s', '%s' ]
+			[ '%d', '%d', '%d', '%s', '%s' ]
 		);
 	}
 

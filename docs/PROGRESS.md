@@ -127,6 +127,8 @@
 
 **تأیید مستقل (trust but verify):** خروجی ایجنت مستقیماً commit نشد؛ ابتدا فایل خوانده و با بریف مقایسه شد (منطبق)، بعد یک اسکریپت تست کاملاً جدا و مستقل (نه اسکریپت خودِ ایجنت) با fake `CustomerRepository`/`WalletRepository` و stub توابع وردپرس نوشته شد — ۸ چک سبز، شامل رد ادمین، idempotency تماس دوم، و مدیریت صحیح `get_userdata()===false`.
 
+**اصلاح یافته حین طراحی T-6.1:** `WalletRepository::ensureExists()` قبلاً هیچ آستانه‌ای نمی‌گرفت — کیف‌پول جدید با `notify_threshold_rial=NULL`/`resume_threshold_rial=0` از DB default ساخته می‌شد، یعنی تنظیمات واقعی ریسلر (ویزارد، T-2.4) برای هیچ مشتری جدیدی اعمال نمی‌شد. با تأیید کاربر، پورت و `WpWalletRepository`/`CustomerRegistration`/`Plugin.php` همین حالا اصلاح شدند: `ensureExists()` حالا دو پارامتر `Money` اجباری می‌گیرد، `CustomerRegistration` آن‌ها را از `ResellerSettings::getLifecyclePolicy()` می‌خواند. تست: ۳ چک خودکار سبز (seed صحیح، عدم بازنویسی روی کیف‌پول موجود).
+
 **بستن بلوک ۳ — DoD:** Wallet/Ledger قابل reconciliation و duplicate-safe — ledger idempotent (دو لایه)، wallet منفی مجاز و clamp نمی‌شود، پرداخت موفق دقیقاً یک credit، customer isolation در همه‌ی repositoryها با `findOwnedByCustomer`/`findByWpUserId` رعایت شده.
 
 ### T-3.5 — Manual receipt/admin adjustment (ایجنت پس‌زمینه)

@@ -15,6 +15,15 @@
  * zero-balance row a new customer needs (PRD §6, "Register/Login" produces a
  * wallet with nothing in it yet); it never touches an existing balance.
  *
+ * `ensureExists()` takes the reseller's current lifecycle-policy thresholds
+ * (T-2.4's `ResellerSettings::getLifecyclePolicy()`) rather than defaulting
+ * them internally: without this, a wallet created via the DB column defaults
+ * (`notify_threshold_rial IS NULL`, `resume_threshold_rial = 0`) would
+ * silently ignore whatever the reseller actually configured in the Setup
+ * Wizard — every new customer would get the low-balance warning and
+ * resume-after-recharge behavior of a reseller who set both to zero,
+ * regardless of the real setting.
+ *
  * @package ArvanReseller
  */
 
@@ -27,11 +36,14 @@ use ArvanReseller\Domain\Money;
 interface WalletRepository {
 
 	/**
-	 * Create a zero-balance wallet for a customer who does not have one yet.
+	 * Create a zero-balance wallet for a customer who does not have one yet,
+	 * seeded with the reseller's current low-balance/resume thresholds.
 	 * Idempotent: calling this for a customer who already has a wallet must
-	 * not reset or otherwise touch their balance.
+	 * not reset or otherwise touch their balance OR their thresholds — a
+	 * customer whose wallet already exists keeps whatever thresholds they
+	 * have, even if the reseller's defaults changed since.
 	 */
-	public function ensureExists( int $customer_id ): void;
+	public function ensureExists( int $customer_id, Money $notify_threshold, Money $resume_threshold ): void;
 
 	/**
 	 * The cached current balance. May be negative (DATA-MODEL.md §4: "Wallet

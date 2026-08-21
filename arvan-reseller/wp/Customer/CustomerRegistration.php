@@ -16,8 +16,10 @@ declare( strict_types = 1 );
 
 namespace ArvanReseller\Wp\Customer;
 
+use ArvanReseller\Domain\Money;
 use ArvanReseller\Ports\CustomerRepository;
 use ArvanReseller\Ports\WalletRepository;
+use ArvanReseller\Wp\Admin\ResellerSettings;
 use ArvanReseller\Wp\Support\Capabilities;
 
 defined( 'ABSPATH' ) || exit;
@@ -26,7 +28,8 @@ final class CustomerRegistration {
 
 	public function __construct(
 		private readonly CustomerRepository $customers,
-		private readonly WalletRepository $wallets
+		private readonly WalletRepository $wallets,
+		private readonly ResellerSettings $settings
 	) {}
 
 	public function register(): void {
@@ -57,6 +60,12 @@ final class CustomerRegistration {
 			$user->user_email
 		);
 
-		$this->wallets->ensureExists( $customer_id );
+		$policy = $this->settings->getLifecyclePolicy();
+
+		$this->wallets->ensureExists(
+			$customer_id,
+			Money::fromRial( $policy['notify_threshold_rial'] ),
+			Money::fromRial( $policy['resume_threshold_rial'] )
+		);
 	}
 }

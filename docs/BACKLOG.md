@@ -290,6 +290,7 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
     - `wp/Customer/CustomerRegistration.php` — هوک `user_register` (نه یک فرم خاص) تا با هر مسیر ثبت‌نامی که در آینده `wp_insert_user()` را صدا بزند (شامل T-7.4، هنوز ساخته نشده) سازگار بماند
     - کاربر با قابلیت `manage_options` (ادمین) نادیده گرفته می‌شود — کل سایت ویترین فروش است، پس هر کاربر دیگر مشتری است
     - نقش `arvan_customer` تنظیم + سطر `CustomerRepository` + `WalletRepository::ensureExists()` — با تکیه بر idempotency خودِ این دو پورت، بدون گارد تکراری اضافه در این کلاس
+    - **اصلاح بعدی:** `ensureExists()` حالا آستانه‌های هشدار/از‌سرگیری را از `ResellerSettings::getLifecyclePolicy()` می‌خواند و به `WalletRepository` پاس می‌دهد؛ قبلاً هر کیف‌پول جدید با `NULL`/`۰` DB-default ساخته می‌شد و تنظیمات واقعی ریسلر را نادیده می‌گرفت (پیدا شد حین طراحی T-6.1، رفع شد قبل از شروع بلوک ۶)
     - سیم‌کشی در `wp/Plugin.php` خارج از گیت `is_admin()` (چون ثبت‌نام در سمت عمومی سایت هم رخ می‌دهد)
     - ۸ چک مستقل (غیر از تست خودِ سازنده) + ۱۳ چک اولیه سبز؛ `php -l` تمیز
 

@@ -72,7 +72,8 @@ final class Plugin {
 
 		$registration = new CustomerRegistration(
 			new WpCustomerRepository( $wpdb ),
-			new WpWalletRepository( $wpdb )
+			new WpWalletRepository( $wpdb ),
+			new ResellerSettings()
 		);
 
 		$registration->register();
