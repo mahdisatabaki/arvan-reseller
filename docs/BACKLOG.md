@@ -319,15 +319,20 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
     - `WpAuditLogger`: چون جدول `arvan_audit_log` ستون `customer_id` اختصاصی ندارد (فقط `subject_type`/`subject_id` عمومی)، customer_id همیشه در `meta` هم نوشته می‌شود تا حتی وقتی `entity_type` جای subject را گرفته گم نشود
     - ۴۰ چک خودکار سبز (پس‌زمینه، پیاده‌سازی‌شده و مستقل بازبینی‌شده)
 
-- [ ] **T-3.6** Financial unit tests
+- [x] **T-3.6** Financial unit tests
   - Base + Markup
   - duplicate payment
   - duplicate ledger idempotency
   - negative balance
   - 1000 sequential billing operations without reconciliation drift
   - **0.75h**
+  - پذیرش:
+    - فقط تست — هیچ فایل `src/`/`wp/` تغییر نکرد (طبق الگوی همیشگی: اسکریپت یک‌بارمصرف، خارج از ریپو)
+    - ۳۳ چک خودکار سبز، هیچ باگ واقعی پیدا نشد
+    - آزمون ۱۰۰۰ عملیات پیاپی (نه تکراری، هر کدام idempotency_key منحصربه‌فرد) روی `WpLedgerRepository::append()` واقعی: موجودی محاسبه‌شده‌ی مستقل = موجودی `WalletRepository` = `balance_after_rial` آخرین سطر ledger — هر سه دقیقاً برابر (۲۸۵۳۷)
+    - تست isolation با interleave واقعی بین دو مشتری (نه پشت‌سرهم) — هیچ عملیات یکی روی دیگری اثر نگذاشت
 
-**DoD:** Wallet و Ledger قابل reconciliation و duplicate-safe باشند.
+**DoD:** ✅ Wallet و Ledger قابل reconciliation و duplicate-safe باشند — تأیید شد با ۳۳ چک از جمله ۱۰۰۰ عملیات پیاپی بدون drift و isolation بین مشتریان (T-3.6).
 
 ---
 
@@ -364,13 +369,17 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
     - هنوز به هیچ UI‌ای وصل نشده (صفحه‌ی فروش CDN = T-7.3) — عمداً
     - ۱۸ چک خودکار سبز با `MockCdnClient` واقعی (نه fake): مسیر موفق کامل + مسیر شکست با `forceFailure()`، هر دو با ترتیب دقیق فراخوان‌ها تأیید شده
 
-- [ ] **T-4.3** Delivery data
+- [x] **T-4.3** Delivery data
   - resource identifier
   - domain
   - status
   - configuration/instructions returned by API when applicable
   - no server credential assumptions
   - **0.25h**
+  - پذیرش:
+    - `src/Provisioning/DeliveryData.php` — شکل customer-facing («چی گرفتم») از یک سطر `arvan_services`، جدا از آرایه‌ی نتیجه‌ی داخلی `ProvisioningService`/`ResourceSyncService`
+    - `configuration` همیشه `null` است — چون هیچ‌جای پروژه شکل تأییدشده‌ای برای «config/instructions برگشتی از API» ندارد (باز از T-1.1)؛ حدس زده نشد، طبق CLAUDE.md §Work Protocol ۷
+    - ۱۱ چک خودکار سبز (پس‌زمینه)، بازبینی مستقل شد
 
 - [x] **T-4.4** Resource sync/retry
   - retry provisioning failure

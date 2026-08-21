@@ -15,8 +15,8 @@
 بلوک ۱  ██████████ 100%   تمام (۴/۴ تسک) — DoD تأیید شد: هر دو driver قابل‌تعویض‌اند
 بلوک ۲  ██████████ 100%   تمام (۴/۴ تسک) — DoD تأیید شد با کلیک واقعی روی وردپرس محلی
 بلوک ۳  ██████████ 100%   تمام (۶/۶ تسک)
-بلوک ۴  ███████░░░  75%   T-4.1, T-4.2, T-4.4 تمام — بعدی: T-4.3 Delivery data
-بلوک ۵  ███░░░░░░░  25%   T-5.1 تمام — بعدی: T-5.2 Billing idempotency + lock
+بلوک ۴  ██████████ 100%   تمام (۴/۴ تسک)
+بلوک ۵  ███░░░░░░░  25%   T-5.1 تمام — در حال کار: T-5.2+T-5.3 با هم (BillingService)
 بلوک ۶  ░░░░░░░░░░   0%
 بلوک ۷  ░░░░░░░░░░   0%
 بلوک ۸  ░░░░░░░░░░   0%
@@ -25,7 +25,7 @@
 بلوک ۱۱ ░░░░░░░░░░   0%
 ```
 
-**قدم بعدی: T-5.2 — Billing idempotency + lock** (سپس T-5.3 Pricing + Debit که خروجی `MeteringService` را مصرف می‌کند). T-4.3 (Delivery data، کوچک) هم هنوز باز است.
+**قدم بعدی: T-5.2+T-5.3 با هم (`BillingService`)** — یک gap واقعی حین طراحی پیدا شد: تبدیل مصرف خام (بایت) به هزینه‌ی ریالی نیاز به «قیمت واحد» پیکربندی‌شده دارد که هیچ‌جا وجود نداشت؛ با تأیید کاربر یک فیلد جدید به Setup Wizard قدم ۴ اضافه شد (کد آماده، تست زنده مانده چون سشن مرورگر منقضی شد).
 
 **نکته‌ی محیطی:** سایت تست محلی (`arvan-test.test`) الان در وضعیت «ویزارد تمام‌شده» است. برای دموی از صفر، باید پلاگین را deactivate/activate کرد یا آپشن‌های `arvan_reseller_*` را پاک کرد.
 
@@ -47,7 +47,7 @@
 | ۱ | CDN API + Mock | ✅ تمام | 4/4 | `src/Arvan/CdnClient.php`, `CdnResource.php`, `OutboundTrafficUsage.php`, `ArvanCdnClient.php`, `MockCdnClient.php`, `CdnProviderException.php`, `src/Ports/HttpClient.php`, `wp/Http/WordPressHttpClient.php` |
 | ۲ | Reseller Setup + Secrets | ✅ تمام | 4/4 | `wp/Security/WordPressSecretStore.php`, `AccessTokenGate.php`, `data/access-token-hashes.php`, `src/Ports/ApiKeyRepository.php`, `wp/Persistence/WpApiKeyRepository.php`, `src/Arvan/ApiKeyConnectionTester.php`, `wp/Admin/ResellerSettings.php`, `SetupWizard.php`, `templates/setup-wizard.php` |
 | ۳ | Wallet + Ledger + Payment | ✅ تمام | 6/6 | `wp/Persistence/WpLedgerRepository.php`, `src/Ports/CustomerRepository.php`, `wp/Persistence/WpCustomerRepository.php`, `wp/Persistence/WpWalletRepository.php`, `wp/Persistence/WpPaymentRepository.php`, `src/Wallet/PaymentService.php`, `wp/Customer/CustomerRegistration.php`, `src/Wallet/ManualAdjustmentService.php`, `wp/Persistence/WpAuditLogger.php` |
-| ۴ | CDN Provisioning + Mapping | 🔶 در حال انجام | 3/4 | `src/Lifecycle/ServiceStatus.php`, `src/Ports/OrderRepository.php`, `wp/Persistence/WpOrderRepository.php`, `wp/Persistence/WpServiceRepository.php`, `src/Provisioning/ProvisioningService.php`, `src/Provisioning/ResourceSyncService.php` |
+| ۴ | CDN Provisioning + Mapping | ✅ تمام | 4/4 | `src/Lifecycle/ServiceStatus.php`, `src/Ports/OrderRepository.php`, `wp/Persistence/WpOrderRepository.php`, `wp/Persistence/WpServiceRepository.php`, `src/Provisioning/ProvisioningService.php`, `src/Provisioning/ResourceSyncService.php`, `src/Provisioning/DeliveryData.php` |
 | ۵ | Metering + Billing | 🔶 در حال انجام | 1/4 | `src/Metering/MeteringService.php`, `src/Metering/UsagePeriod.php` |
 | ۶ | Limits + Lifecycle | ⏳ شروع‌نشده | 0/5 | — |
 | ۷ | Customer Frontend | ⏳ شروع‌نشده | 0/6 | — |
@@ -160,6 +160,18 @@
 `src/Metering/MeteringService.php` + `src/Metering/UsagePeriod.php`. فقط fetch/normalize مصرف — صریحاً هیچ نوشتنی در DB یا `LedgerRepository` ندارد و عمداً `ServiceRepository::markMeteredThrough()` را صدا نمی‌زند (طبق داک‌بلاک آن متد، watermark فقط بعد از billed شدن باید جلو برود — جلوبردنش زودتر یعنی اگر T-5.3 بعداً شکست بخورد، آن بازه‌ی مصرف برای همیشه گم می‌شود). اولویت نقطه‌ی شروع بازه: `metered_through` → `provisioned_at` → `created_at`.
 
 **تأیید مستقل:** ۱۲ چک ایجنت + ۴ چک بازبینی مستقل جدا (fallback اولویت با سه ترکیب مختلف، pass-through مقادیر) — بدون انحراف از بریف.
+
+### T-4.3 — Delivery data (ایجنت پس‌زمینه، بستن بلوک ۴)
+
+`src/Provisioning/DeliveryData.php` — شکل customer-facing («چی گرفتم») از یک سطر `arvan_services`، جدا از آرایه‌ی نتیجه‌ی داخلی `ProvisioningService`/`ResourceSyncService` (که `order_id`/`ok` دارند، customer-facing نیستند). فیلد `configuration` همیشه `null` — چون هیچ شکل تأییدشده‌ای برای «config/instructions برگشتی از API» در پروژه وجود ندارد (باز از T-1.1)، حدس زده نشد. ۱۱ چک خودکار سبز، بازبینی مستقل شد.
+
+**بستن بلوک ۴ — DoD:** ✅ Order → CDN Resource → mapping کامل — با `MockCdnClient` واقعی روی هر دو مسیر موفق (T-4.2) و retry/reconcile (T-4.4) تأیید شد.
+
+### T-3.6 — Financial unit tests (ایجنت پس‌زمینه، بستن بلوک ۳)
+
+فقط تست — هیچ فایل `src/`/`wp/` تغییر نکرد. ۳۳ چک خودکار سبز، **هیچ باگ واقعی پیدا نشد**. برجسته‌ترین بخش: آزمون ۱۰۰۰ عملیات پیاپی واقعی (نه شبیه‌سازی‌شده، هر کدام idempotency_key منحصربه‌فرد) روی `WpLedgerRepository::append()` — موجودی محاسبه‌شده‌ی مستقل، موجودی `WalletRepository`، و `balance_after_rial` آخرین سطر ledger هر سه دقیقاً ۲۸۵۳۷ شدند؛ به‌علاوه تست isolation با interleave واقعی بین دو مشتری (نه پشت‌سرهم).
+
+**بستن بلوک ۳ — DoD:** ✅ Wallet/Ledger قابل reconciliation و duplicate-safe.
 
 ## تصمیم‌های باز (باید در بلوک‌های بعدی حل شوند)
 
