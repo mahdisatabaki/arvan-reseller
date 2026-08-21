@@ -77,9 +77,12 @@ arvan-reseller/
 ├── src/
 │   ├── Domain/
 │   ├── Pricing/
-│   ├── Ledger/
-│   ├── Metering/
-│   ├── Lifecycle/
+│   ├── Wallet/          (PaymentService, ManualAdjustmentService — ledger
+│   │                      rules live in these + LedgerRepository itself,
+│   │                      no separate Ledger/ folder)
+│   ├── Provisioning/    (ProvisioningService)
+│   ├── Metering/        (not built yet)
+│   ├── Lifecycle/       (ServiceStatus)
 │   ├── Arvan/
 │   └── Ports/
 ├── wp/

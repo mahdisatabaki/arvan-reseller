@@ -14,8 +14,8 @@
 بلوک ۰  ██████████ 100%   تمام (۹/۹ تسک)
 بلوک ۱  ██████████ 100%   تمام (۴/۴ تسک) — DoD تأیید شد: هر دو driver قابل‌تعویض‌اند
 بلوک ۲  ██████████ 100%   تمام (۴/۴ تسک) — DoD تأیید شد با کلیک واقعی روی وردپرس محلی
-بلوک ۳  ███████░░░  67%   T-3.1, T-3.2, T-3.3, T-3.4 تمام — بعدی: T-3.5
-بلوک ۴  ██░░░░░░░░  25%   T-4.1 تمام — بعدی: T-4.2 ProvisioningService (به T-3.3 وابسته)
+بلوک ۳  ██████████ 100%   تمام (۶/۶ تسک)
+بلوک ۴  █████░░░░░  50%   T-4.1, T-4.2 تمام — بعدی: T-4.3 Delivery data
 بلوک ۵  ░░░░░░░░░░   0%
 بلوک ۶  ░░░░░░░░░░   0%
 بلوک ۷  ░░░░░░░░░░   0%
@@ -25,7 +25,7 @@
 بلوک ۱۱ ░░░░░░░░░░   0%
 ```
 
-**قدم بعدی: T-3.3 — Customer creation** (WP registration hook + zero-balance wallet، با `CustomerRepository`/`WalletRepository` که همین حالا آماده شدند).
+**قدم بعدی: T-4.3 — Delivery data** (resource identifier/domain/status که provisioning برمی‌گرداند).
 
 **نکته‌ی محیطی:** سایت تست محلی (`arvan-test.test`) الان در وضعیت «ویزارد تمام‌شده» است. برای دموی از صفر، باید پلاگین را deactivate/activate کرد یا آپشن‌های `arvan_reseller_*` را پاک کرد.
 
@@ -46,8 +46,8 @@
 | ۰ | Foundation | ✅ تمام | 9/9 | `arvan-reseller.php`, `Schema.php`, `Installer.php`, `Capabilities.php`, `Scheduler.php`, `Money.php`, `MarkupRate.php`, `ChargeBreakdown.php`, `ResellerPricing.php`, `src/Ports/*` (۸ فایل) |
 | ۱ | CDN API + Mock | ✅ تمام | 4/4 | `src/Arvan/CdnClient.php`, `CdnResource.php`, `OutboundTrafficUsage.php`, `ArvanCdnClient.php`, `MockCdnClient.php`, `CdnProviderException.php`, `src/Ports/HttpClient.php`, `wp/Http/WordPressHttpClient.php` |
 | ۲ | Reseller Setup + Secrets | ✅ تمام | 4/4 | `wp/Security/WordPressSecretStore.php`, `AccessTokenGate.php`, `data/access-token-hashes.php`, `src/Ports/ApiKeyRepository.php`, `wp/Persistence/WpApiKeyRepository.php`, `src/Arvan/ApiKeyConnectionTester.php`, `wp/Admin/ResellerSettings.php`, `SetupWizard.php`, `templates/setup-wizard.php` |
-| ۳ | Wallet + Ledger + Payment | 🔶 در حال انجام | 4/6 | `wp/Persistence/WpLedgerRepository.php`, `src/Ports/CustomerRepository.php`, `wp/Persistence/WpCustomerRepository.php`, `wp/Persistence/WpWalletRepository.php`, `wp/Persistence/WpPaymentRepository.php`, `src/Wallet/PaymentService.php`, `wp/Customer/CustomerRegistration.php` |
-| ۴ | CDN Provisioning + Mapping | 🔶 در حال انجام | 1/4 | `src/Lifecycle/ServiceStatus.php` |
+| ۳ | Wallet + Ledger + Payment | ✅ تمام | 6/6 | `wp/Persistence/WpLedgerRepository.php`, `src/Ports/CustomerRepository.php`, `wp/Persistence/WpCustomerRepository.php`, `wp/Persistence/WpWalletRepository.php`, `wp/Persistence/WpPaymentRepository.php`, `src/Wallet/PaymentService.php`, `wp/Customer/CustomerRegistration.php`, `src/Wallet/ManualAdjustmentService.php`, `wp/Persistence/WpAuditLogger.php` |
+| ۴ | CDN Provisioning + Mapping | 🔶 در حال انجام | 2/4 | `src/Lifecycle/ServiceStatus.php`, `src/Ports/OrderRepository.php`, `wp/Persistence/WpOrderRepository.php`, `wp/Persistence/WpServiceRepository.php`, `src/Provisioning/ProvisioningService.php` |
 | ۵ | Metering + Billing | ⏳ شروع‌نشده | 0/4 | — |
 | ۶ | Limits + Lifecycle | ⏳ شروع‌نشده | 0/5 | — |
 | ۷ | Customer Frontend | ⏳ شروع‌نشده | 0/6 | — |
@@ -126,6 +126,24 @@
 برخلاف تلاش‌های قبلی برای T-3.2/T-4.1، این ایجنت پس‌زمینه بدون قطعی تا انتها اجرا و گزارش داد. `wp/Customer/CustomerRegistration.php` هوک `user_register` را می‌گیرد، ادمین (`manage_options`) را نادیده می‌گیرد، نقش `arvan_customer` ست می‌کند، و `CustomerRepository::create()` + `WalletRepository::ensureExists()` را صدا می‌زند — بدون گارد تکراری خودش، چون هر دو پورت از قبل idempotent‌اند. سیم‌کشی در `wp/Plugin.php::boot()` خارج از `is_admin()` (ثبت‌نام روی سایت عمومی هم رخ می‌دهد).
 
 **تأیید مستقل (trust but verify):** خروجی ایجنت مستقیماً commit نشد؛ ابتدا فایل خوانده و با بریف مقایسه شد (منطبق)، بعد یک اسکریپت تست کاملاً جدا و مستقل (نه اسکریپت خودِ ایجنت) با fake `CustomerRepository`/`WalletRepository` و stub توابع وردپرس نوشته شد — ۸ چک سبز، شامل رد ادمین، idempotency تماس دوم، و مدیریت صحیح `get_userdata()===false`.
+
+**بستن بلوک ۳ — DoD:** Wallet/Ledger قابل reconciliation و duplicate-safe — ledger idempotent (دو لایه)، wallet منفی مجاز و clamp نمی‌شود، پرداخت موفق دقیقاً یک credit، customer isolation در همه‌ی repositoryها با `findOwnedByCustomer`/`findByWpUserId` رعایت شده.
+
+### T-3.5 — Manual receipt/admin adjustment (ایجنت پس‌زمینه)
+
+«رسید دستی» نیاز به کد جدید نداشت — `PaymentService` (T-3.4) از قبل method-agnostic بود. چیز واقعاً جدید: `src/Wallet/ManualAdjustmentService.php` (تعدیل مستقیم کیف‌پول بدون پرداخت، با دلیل الزامی) + `wp/Persistence/WpAuditLogger.php` (اولین پیاده‌سازی پورت `AuditLogger` از T-0.8). نگاشت جالب: چون `arvan_audit_log` ستون `customer_id` اختصاصی ندارد، customer_id همیشه در JSON فیلد `meta` هم نوشته می‌شود، حتی وقتی `entity_type` جای ستون‌های subject را گرفته — تا هیچ‌وقت گم نشود.
+
+**تأیید مستقل:** ۴۰ چک ایجنت پس‌زمینه + بازخوانی مستقیم هر دو فایل و مقایسه با بریف — منطبق، بدون انحراف.
+
+### T-4.2 — ProvisioningService
+
+سه فایل جدید (`OrderRepository` پورت + `WpOrderRepository` + `WpServiceRepository`) و یک سرویس دامنه‌ی خالص (`ProvisioningService`). یک **گسترش پورت** لازم شد: `ServiceRepository` (T-0.8) هیچ متدی برای ذخیره‌ی Resource ID بعد از موفقیت remote call نداشت — چون هیچ پیاده‌سازی WP‌ای از این پورت قبلاً وجود نداشت، اضافه‌کردن `recordProvisioned()` بی‌خطر بود، نه یک breaking change.
+
+ترتیب اجباری در `provision()`: `orders->create()` → `services->createProvisioning()` → `orders->markProvisioning()` → **سپس** `client->createResource()` — دقیقاً طبق قانون CLAUDE.md که یک provisioning ناموفق نباید بدون رکورد محلی، منبع remote یتیم بسازد. `$client`/`api_key_id` از بیرون تزریق می‌شوند چون ساخت `ArvanCdnClient` واقعی نیاز به `SecretStore`+`WordPressHttpClient` دارد (لایه‌ی WP)، نه چیزی که این سرویس دامنه‌ی خالص باید بسازد.
+
+**تست:** ۱۸ چک با `MockCdnClient` واقعی (نه fake) — یک‌بار مسیر موفق کامل، یک‌بار مسیر شکست با `forceFailure()`؛ هر دو ترتیب دقیق فراخوان‌ها (order قبل از service، هر دو قبل از remote call) را تأیید کردند، نه فقط نتیجه‌ی نهایی.
+
+**هنوز وصل نشده به هیچ UI‌ای** — صفحه‌ی فروش CDN که این را صدا می‌زند T-7.3 است (بلوک ۷، هنوز نیست).
 
 ## تصمیم‌های باز (باید در بلوک‌های بعدی حل شوند)
 

@@ -306,10 +306,17 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
     - `findOwnedByCustomer()` قبل از هر عملیات چک می‌شود؛ تلاش برای تأیید پرداخت مشتری دیگر خطا می‌دهد
     - ۱۴ چک خودکار سبز: initiate idempotent، credit دقیقاً یک‌بار، duplicate confirm بدون credit دوم، رد ownership اشتباه، mark failed، و یک senario غیرمنتظره‌ی مستندشده (پرداخت failed بعداً می‌تواند confirm شود — هیچ قانونی در BILLING.md آن را منع نکرده)
 
-- [ ] **T-3.5** Manual receipt/admin adjustment
+- [x] **T-3.5** Manual receipt/admin adjustment
   - reason required
   - audit log
   - **0.25h**
+  - پذیرش:
+    - «رسید دستی» نیاز به کد جدید نداشت — `PaymentService` (T-3.4) از قبل method-agnostic است؛ `initiate(..., 'manual_receipt', ...)` کل جریان را پوشش می‌دهد
+    - چیز واقعاً جدید: `src/Wallet/ManualAdjustmentService.php` (تعدیل مستقیم کیف‌پول توسط ادمین، بدون پرداخت) + `wp/Persistence/WpAuditLogger.php` (اولین پیاده‌سازی پورت `AuditLogger`، T-0.8)
+    - `adjust()` قبل از هر کاری دو ورودی را رد می‌کند: دلیل خالی/فقط-فاصله، مبلغ صفر — طبق «reason الزامی» در SCREEN-SPECS.md §۴
+    - audit فقط بعد از موفقیت `append()` ثبت می‌شود
+    - `WpAuditLogger`: چون جدول `arvan_audit_log` ستون `customer_id` اختصاصی ندارد (فقط `subject_type`/`subject_id` عمومی)، customer_id همیشه در `meta` هم نوشته می‌شود تا حتی وقتی `entity_type` جای subject را گرفته گم نشود
+    - ۴۰ چک خودکار سبز (پس‌زمینه، پیاده‌سازی‌شده و مستقل بازبینی‌شده)
 
 - [ ] **T-3.6** Financial unit tests
   - Base + Markup
@@ -337,7 +344,7 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
     - `canTransitionTo()` جدول انتقال مجاز را یک‌جا نگه می‌دارد تا `ProvisioningService`/`SuspensionEngine` بعدی مجبور به تکرار منطق نباشند؛ `terminated` هیچ انتقال خروجی ندارد (BILLING.md §۱۶: غیرقابل‌بازگشت)
     - ۲۶ چک خودکار سبز: تمام انتقال‌های مجاز، چند انتقال غیرمجاز نمونه، رد وضعیت ناشناخته
 
-- [ ] **T-4.2** ⛔ ProvisioningService
+- [x] **T-4.2** ⛔ ProvisioningService
   - create local order/service BEFORE remote API call
   - call `CdnClient.createResource`
   - store Resource ID
@@ -347,6 +354,14 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
     - service_id
     - api_key_id
   - **0.75h**
+  - پذیرش:
+    - `src/Ports/OrderRepository.php` (پورت جدید) + `wp/Persistence/WpOrderRepository.php`/`WpServiceRepository.php` (پیاده‌سازی `$wpdb`) + `src/Provisioning/ProvisioningService.php` (دامنه‌ی خالص)
+    - **گسترش پورت:** یک متد `recordProvisioned()` به `ServiceRepository` (T-0.8) اضافه شد — پورت قبلی راهی برای ذخیره‌ی Resource ID بعد از موفقیت remote call نداشت؛ چون هیچ پیاده‌سازی WP‌ای از این پورت هنوز وجود نداشت، این یک extension بی‌خطر بود نه breaking change
+    - ترتیب اجباری: `orders->create()` → `services->createProvisioning()` → `orders->markProvisioning()` → **سپس** `client->createResource()` — دقیقاً طبق CLAUDE.md «یک provisioning ناموفق نباید بدون رکورد محلی قابل‌بازیابی، منبع remote یتیم بسازد»
+    - شکست (`CdnProviderException`) service را `provisioning_failed` و order را `failed` (با پیام امن، بدون افشای provider خام) می‌کند؛ هیچ‌کدام حذف نمی‌شوند — رکورد محلی برای retry بعدی (T-4.4) باقی می‌ماند
+    - `$client`/`api_key_id` از بیرون تزریق می‌شوند (نه ساخته‌شده داخل این کلاس) چون ساخت `ArvanCdnClient` واقعی به `SecretStore`+`WordPressHttpClient` نیاز دارد — لایه‌ی WP، نه دامنه؛ فراخوان (کنترلر آینده‌ی T-7.3، هنوز نیست) مسئول ساختنش است
+    - هنوز به هیچ UI‌ای وصل نشده (صفحه‌ی فروش CDN = T-7.3) — عمداً
+    - ۱۸ چک خودکار سبز با `MockCdnClient` واقعی (نه fake): مسیر موفق کامل + مسیر شکست با `forceFailure()`، هر دو با ترتیب دقیق فراخوان‌ها تأیید شده
 
 - [ ] **T-4.3** Delivery data
   - resource identifier

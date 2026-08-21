@@ -67,6 +67,16 @@ interface ServiceRepository {
 	public function markMeteredThrough( int $service_id, DateTimeImmutable $through ): void;
 
 	/**
+	 * Records the provider's resource id once `CdnClient::createResource()`
+	 * succeeds (T-4.2). Separate from `updateStatus()` because storing the
+	 * resource's identity is a one-time fact tied to successful creation,
+	 * not a state transition by itself — `ProvisioningService` calls both
+	 * together on success, but a future reconciliation path (T-4.4) may
+	 * need to call `updateStatus()` alone.
+	 */
+	public function recordProvisioned( int $service_id, string $remote_resource_id, DateTimeImmutable $at ): void;
+
+	/**
 	 * Persist a lifecycle state transition. This port does not validate that
 	 * the transition is legal — that is LifecycleService's job (TECH.md §5);
 	 * this method only records the outcome the caller already decided on.
