@@ -280,12 +280,18 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
     - `WalletRepository` فقط خواندن + `ensureExists()` دارد (بدون متد نوشتن مستقیم روی balance) — طبق قرارداد پورت، تنها مسیر نوشتن `LedgerRepository::append()` است
     - ۲۴ چک مشترک با T-3.1 (بالا) سبز، شامل `ensureExists()` idempotent و خواندن صحیح `notify_threshold_rial` NULL به‌صورت صفر
 
-- [ ] **T-3.3** Customer creation
+- [x] **T-3.3** Customer creation
   - WP registration
   - `arvan_customer`
   - financial customer row
   - zero-balance wallet
   - **0.5h**
+  - پذیرش:
+    - `wp/Customer/CustomerRegistration.php` — هوک `user_register` (نه یک فرم خاص) تا با هر مسیر ثبت‌نامی که در آینده `wp_insert_user()` را صدا بزند (شامل T-7.4، هنوز ساخته نشده) سازگار بماند
+    - کاربر با قابلیت `manage_options` (ادمین) نادیده گرفته می‌شود — کل سایت ویترین فروش است، پس هر کاربر دیگر مشتری است
+    - نقش `arvan_customer` تنظیم + سطر `CustomerRepository` + `WalletRepository::ensureExists()` — با تکیه بر idempotency خودِ این دو پورت، بدون گارد تکراری اضافه در این کلاس
+    - سیم‌کشی در `wp/Plugin.php` خارج از گیت `is_admin()` (چون ثبت‌نام در سمت عمومی سایت هم رخ می‌دهد)
+    - ۸ چک مستقل (غیر از تست خودِ سازنده) + ۱۳ چک اولیه سبز؛ `php -l` تمیز
 
 - [x] **T-3.4** Mock Payment
   - pending

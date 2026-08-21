@@ -17,8 +17,11 @@ use ArvanReseller\Arvan\ApiKeyConnectionTester;
 use ArvanReseller\Wp\Admin\ResellerSettings;
 use ArvanReseller\Wp\Admin\SetupWizard;
 use ArvanReseller\Wp\Cron\Scheduler;
+use ArvanReseller\Wp\Customer\CustomerRegistration;
 use ArvanReseller\Wp\Installation\Installer;
 use ArvanReseller\Wp\Persistence\WpApiKeyRepository;
+use ArvanReseller\Wp\Persistence\WpCustomerRepository;
+use ArvanReseller\Wp\Persistence\WpWalletRepository;
 use ArvanReseller\Wp\Security\AccessTokenGate;
 use ArvanReseller\Wp\Security\WordPressSecretStore;
 
@@ -52,9 +55,27 @@ final class Plugin {
 
 		add_filter( 'cron_schedules', [ Scheduler::class, 'addIntervals' ] );
 
+		$this->bootCustomer();
+
 		if ( is_admin() ) {
 			$this->bootAdmin();
 		}
+	}
+
+	/**
+	 * Registration can happen on the public-facing site, not just wp-admin,
+	 * so this is wired unconditionally rather than behind the `is_admin()`
+	 * gate that guards `bootAdmin()`.
+	 */
+	private function bootCustomer(): void {
+		global $wpdb;
+
+		$registration = new CustomerRegistration(
+			new WpCustomerRepository( $wpdb ),
+			new WpWalletRepository( $wpdb )
+		);
+
+		$registration->register();
 	}
 
 	/**

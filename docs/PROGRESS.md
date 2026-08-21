@@ -14,7 +14,7 @@
 بلوک ۰  ██████████ 100%   تمام (۹/۹ تسک)
 بلوک ۱  ██████████ 100%   تمام (۴/۴ تسک) — DoD تأیید شد: هر دو driver قابل‌تعویض‌اند
 بلوک ۲  ██████████ 100%   تمام (۴/۴ تسک) — DoD تأیید شد با کلیک واقعی روی وردپرس محلی
-بلوک ۳  █████░░░░░  50%   T-3.1, T-3.2, T-3.4 تمام؛ T-3.3 در حال انجام (پس‌زمینه) — بعدی: T-3.5
+بلوک ۳  ███████░░░  67%   T-3.1, T-3.2, T-3.3, T-3.4 تمام — بعدی: T-3.5
 بلوک ۴  ██░░░░░░░░  25%   T-4.1 تمام — بعدی: T-4.2 ProvisioningService (به T-3.3 وابسته)
 بلوک ۵  ░░░░░░░░░░   0%
 بلوک ۶  ░░░░░░░░░░   0%
@@ -46,7 +46,7 @@
 | ۰ | Foundation | ✅ تمام | 9/9 | `arvan-reseller.php`, `Schema.php`, `Installer.php`, `Capabilities.php`, `Scheduler.php`, `Money.php`, `MarkupRate.php`, `ChargeBreakdown.php`, `ResellerPricing.php`, `src/Ports/*` (۸ فایل) |
 | ۱ | CDN API + Mock | ✅ تمام | 4/4 | `src/Arvan/CdnClient.php`, `CdnResource.php`, `OutboundTrafficUsage.php`, `ArvanCdnClient.php`, `MockCdnClient.php`, `CdnProviderException.php`, `src/Ports/HttpClient.php`, `wp/Http/WordPressHttpClient.php` |
 | ۲ | Reseller Setup + Secrets | ✅ تمام | 4/4 | `wp/Security/WordPressSecretStore.php`, `AccessTokenGate.php`, `data/access-token-hashes.php`, `src/Ports/ApiKeyRepository.php`, `wp/Persistence/WpApiKeyRepository.php`, `src/Arvan/ApiKeyConnectionTester.php`, `wp/Admin/ResellerSettings.php`, `SetupWizard.php`, `templates/setup-wizard.php` |
-| ۳ | Wallet + Ledger + Payment | 🔶 در حال انجام | 3/6 | `wp/Persistence/WpLedgerRepository.php`, `src/Ports/CustomerRepository.php`, `wp/Persistence/WpCustomerRepository.php`, `wp/Persistence/WpWalletRepository.php`, `wp/Persistence/WpPaymentRepository.php`, `src/Wallet/PaymentService.php` |
+| ۳ | Wallet + Ledger + Payment | 🔶 در حال انجام | 4/6 | `wp/Persistence/WpLedgerRepository.php`, `src/Ports/CustomerRepository.php`, `wp/Persistence/WpCustomerRepository.php`, `wp/Persistence/WpWalletRepository.php`, `wp/Persistence/WpPaymentRepository.php`, `src/Wallet/PaymentService.php`, `wp/Customer/CustomerRegistration.php` |
 | ۴ | CDN Provisioning + Mapping | 🔶 در حال انجام | 1/4 | `src/Lifecycle/ServiceStatus.php` |
 | ۵ | Metering + Billing | ⏳ شروع‌نشده | 0/4 | — |
 | ۶ | Limits + Lifecycle | ⏳ شروع‌نشده | 0/5 | — |
@@ -120,6 +120,12 @@
 ### T-3.4 — Mock Payment (موازی با تلاش دوم پس‌زمینه برای T-3.3)
 
 `wp/Persistence/WpPaymentRepository.php` (پیاده‌سازی پورت `PaymentRepository`) + `src/Wallet/PaymentService.php` (سرویس دامنه‌ی خالص که `PaymentRepository`+`LedgerRepository` را وصل می‌کند). محافظت دو لایه‌ای در برابر double-credit: گارد status روی خودِ payment (`markSucceeded()` روی پرداخت already-succeeded می‌شود `false` و سرویس متوقف می‌شود) + idempotency_key مجزای ledger (`payment-{id}`) به‌عنوان لایه‌ی دوم مستقل. `findOwnedByCustomer()` قبل از هر عملیات — تلاش برای تأیید پرداخت مشتری دیگر `RuntimeException` می‌دهد. هنوز به هیچ UI/trigger‌ای وصل نشده (T-5.4/T-7.4 که این را صدا می‌زنند هنوز نیستند) — عمداً، طبق «بدون scope اضافه». تست: ۱۴ چک خودکار سبز روی همان الگوی fake `$wpdb`.
+
+### T-3.3 — Customer creation (ایجنت پس‌زمینه، این‌بار موفق)
+
+برخلاف تلاش‌های قبلی برای T-3.2/T-4.1، این ایجنت پس‌زمینه بدون قطعی تا انتها اجرا و گزارش داد. `wp/Customer/CustomerRegistration.php` هوک `user_register` را می‌گیرد، ادمین (`manage_options`) را نادیده می‌گیرد، نقش `arvan_customer` ست می‌کند، و `CustomerRepository::create()` + `WalletRepository::ensureExists()` را صدا می‌زند — بدون گارد تکراری خودش، چون هر دو پورت از قبل idempotent‌اند. سیم‌کشی در `wp/Plugin.php::boot()` خارج از `is_admin()` (ثبت‌نام روی سایت عمومی هم رخ می‌دهد).
+
+**تأیید مستقل (trust but verify):** خروجی ایجنت مستقیماً commit نشد؛ ابتدا فایل خوانده و با بریف مقایسه شد (منطبق)، بعد یک اسکریپت تست کاملاً جدا و مستقل (نه اسکریپت خودِ ایجنت) با fake `CustomerRepository`/`WalletRepository` و stub توابع وردپرس نوشته شد — ۸ چک سبز، شامل رد ادمین، idempotency تماس دوم، و مدیریت صحیح `get_userdata()===false`.
 
 ## تصمیم‌های باز (باید در بلوک‌های بعدی حل شوند)
 
