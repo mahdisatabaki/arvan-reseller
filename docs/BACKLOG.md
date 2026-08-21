@@ -256,18 +256,29 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
 
 # بلوک ۳ — Wallet + Ledger + Payment · 4h
 
-- [ ] **T-3.1** ⛔ LedgerService اتمیک
+- [x] **T-3.1** ⛔ LedgerService اتمیک
   - append-only
   - unique idempotency key
   - DB transaction around:
     - ledger insert
     - wallet update
   - **1.25h**
+  - پذیرش:
+    - `wp/Persistence/WpLedgerRepository.php` — پیاده‌سازی پورت `LedgerRepository` (T-0.8)، بدون تغییر در امضای پورت
+    - `SELECT ... FOR UPDATE` روی سطر wallet داخل `START TRANSACTION`/`COMMIT` قفل می‌کند تا دو `append()` هم‌زمان روی یک customer یکدیگر را نبینند
+    - idempotency دو لایه‌ای: اول یک `SELECT` روی `idempotency_key` (مسیر سریع تکرار عادی)، و اگر race واقعی رخ دهد و INSERT با نقض unique key مواجه شود، `ROLLBACK` و خواندن دوباره‌ی سطر برنده — هیچ‌وقت دو بار credit/debit نمی‌شود
+    - `direction`/`amount_rial` (بدون علامت، unsigned) از روی علامت `Money` مشتق می‌شوند؛ `balance_after_rial` و `wallet.balance_rial` علامت‌دار می‌مانند و منفی می‌شوند، clamp به صفر نمی‌شوند
+    - ۲۴ چک خودکار (fake `$wpdb`، خارج از ریپو) سبز: credit، duplicate idempotency_key (بدون credit دوم)، debit به موجودی منفی، و شبیه‌سازی race روی INSERT
 
-- [ ] **T-3.2** WalletRepository + CustomerRepository
+- [x] **T-3.2** WalletRepository + CustomerRepository
   - تمام customer queries customer-scoped
   - no cross-customer access
   - **0.5h**
+  - پذیرش:
+    - `src/Ports/CustomerRepository.php` (پورت جدید) + `wp/Persistence/WpCustomerRepository.php` + `wp/Persistence/WpWalletRepository.php` (پیاده‌سازی پورت موجود از T-0.8)
+    - `CustomerRepository::create()` همان الگوی «برگرداندن id موجود روی تکرار» را دارد که `ApiKeyRepository::create()` دارد (T-2.3) — دو بار ثبت یک `wp_user_id` دو سطر نمی‌سازد
+    - `WalletRepository` فقط خواندن + `ensureExists()` دارد (بدون متد نوشتن مستقیم روی balance) — طبق قرارداد پورت، تنها مسیر نوشتن `LedgerRepository::append()` است
+    - ۲۴ چک مشترک با T-3.1 (بالا) سبز، شامل `ensureExists()` idempotent و خواندن صحیح `notify_threshold_rial` NULL به‌صورت صفر
 
 - [ ] **T-3.3** Customer creation
   - WP registration
@@ -303,13 +314,17 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
 
 # بلوک ۴ — CDN Provisioning + Mapping · 1.75h
 
-- [ ] **T-4.1** Service state machine
+- [x] **T-4.1** Service state machine
   - provisioning
   - active
   - suspended
   - terminated
   - failed states
   - **0.25h**
+  - پذیرش:
+    - `src/Lifecycle/ServiceStatus.php` — value object خالص دامنه (بدون `wp_*`)؛ ۸ وضعیت دقیقاً مطابق `arvan_services.status` در Schema.php
+    - `canTransitionTo()` جدول انتقال مجاز را یک‌جا نگه می‌دارد تا `ProvisioningService`/`SuspensionEngine` بعدی مجبور به تکرار منطق نباشند؛ `terminated` هیچ انتقال خروجی ندارد (BILLING.md §۱۶: غیرقابل‌بازگشت)
+    - ۲۶ چک خودکار سبز: تمام انتقال‌های مجاز، چند انتقال غیرمجاز نمونه، رد وضعیت ناشناخته
 
 - [ ] **T-4.2** ⛔ ProvisioningService
   - create local order/service BEFORE remote API call

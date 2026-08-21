@@ -8,14 +8,14 @@
 
 ## الان کجاییم
 
-**بلوک ۰، ۱ و ۲ کامل تمام شدند. بلوک ۳ — Wallet + Ledger + Payment — بعدی است، با T-3.1 (`LedgerService`).**
+**بلوک ۰، ۱ و ۲ کامل تمام شدند. بلوک ۳ و ۴ هم‌زمان در حال پیشرفت‌اند (سه مسیر مستقل بدون فایل مشترک).**
 
 ```
 بلوک ۰  ██████████ 100%   تمام (۹/۹ تسک)
 بلوک ۱  ██████████ 100%   تمام (۴/۴ تسک) — DoD تأیید شد: هر دو driver قابل‌تعویض‌اند
 بلوک ۲  ██████████ 100%   تمام (۴/۴ تسک) — DoD تأیید شد با کلیک واقعی روی وردپرس محلی
-بلوک ۳  ░░░░░░░░░░   0%   بعدی: T-3.1 LedgerService
-بلوک ۴  ░░░░░░░░░░   0%
+بلوک ۳  ███░░░░░░░  33%   T-3.1, T-3.2 تمام — بعدی: T-3.3 Customer creation
+بلوک ۴  ██░░░░░░░░  25%   T-4.1 تمام — بعدی: T-4.2 ProvisioningService (به T-3.3 وابسته)
 بلوک ۵  ░░░░░░░░░░   0%
 بلوک ۶  ░░░░░░░░░░   0%
 بلوک ۷  ░░░░░░░░░░   0%
@@ -25,7 +25,7 @@
 بلوک ۱۱ ░░░░░░░░░░   0%
 ```
 
-**قدم بعدی: T-3.1 — `LedgerService`** (دفتر کل append-only، atomic، طبق CLAUDE.md).
+**قدم بعدی: T-3.3 — Customer creation** (WP registration hook + zero-balance wallet، با `CustomerRepository`/`WalletRepository` که همین حالا آماده شدند).
 
 **نکته‌ی محیطی:** سایت تست محلی (`arvan-test.test`) الان در وضعیت «ویزارد تمام‌شده» است. برای دموی از صفر، باید پلاگین را deactivate/activate کرد یا آپشن‌های `arvan_reseller_*` را پاک کرد.
 
@@ -46,8 +46,8 @@
 | ۰ | Foundation | ✅ تمام | 9/9 | `arvan-reseller.php`, `Schema.php`, `Installer.php`, `Capabilities.php`, `Scheduler.php`, `Money.php`, `MarkupRate.php`, `ChargeBreakdown.php`, `ResellerPricing.php`, `src/Ports/*` (۸ فایل) |
 | ۱ | CDN API + Mock | ✅ تمام | 4/4 | `src/Arvan/CdnClient.php`, `CdnResource.php`, `OutboundTrafficUsage.php`, `ArvanCdnClient.php`, `MockCdnClient.php`, `CdnProviderException.php`, `src/Ports/HttpClient.php`, `wp/Http/WordPressHttpClient.php` |
 | ۲ | Reseller Setup + Secrets | ✅ تمام | 4/4 | `wp/Security/WordPressSecretStore.php`, `AccessTokenGate.php`, `data/access-token-hashes.php`, `src/Ports/ApiKeyRepository.php`, `wp/Persistence/WpApiKeyRepository.php`, `src/Arvan/ApiKeyConnectionTester.php`, `wp/Admin/ResellerSettings.php`, `SetupWizard.php`, `templates/setup-wizard.php` |
-| ۳ | Wallet + Ledger + Payment | ⏳ شروع‌نشده | 0/6 | — |
-| ۴ | CDN Provisioning + Mapping | ⏳ شروع‌نشده | 0/4 | — |
+| ۳ | Wallet + Ledger + Payment | 🔶 در حال انجام | 2/6 | `wp/Persistence/WpLedgerRepository.php`, `src/Ports/CustomerRepository.php`, `wp/Persistence/WpCustomerRepository.php`, `wp/Persistence/WpWalletRepository.php` |
+| ۴ | CDN Provisioning + Mapping | 🔶 در حال انجام | 1/4 | `src/Lifecycle/ServiceStatus.php` |
 | ۵ | Metering + Billing | ⏳ شروع‌نشده | 0/4 | — |
 | ۶ | Limits + Lifecycle | ⏳ شروع‌نشده | 0/5 | — |
 | ۷ | Customer Frontend | ⏳ شروع‌نشده | 0/6 | — |
@@ -106,6 +106,16 @@
 **بستن بلوک ۲ — DoD با کلیک واقعی روی وردپرس محلی تأیید شد** (نه فقط بازبینی کد)، شامل تکمیل کامل ویزارد ۵ مرحله تا ریدایرکت نهایی به Dashboard. تنها بخش تأییدنشده: مسیر موفق واقعی (غیر-Mock) `ArvanCdnClient` داخل ویزارد با یک اعتبارنامه‌ی واقعی ArvanCloud هرگز end-to-end تست نشده — چون Claude اجازه‌ی واردکردن API key واقعی ندارد (به «تصمیم‌های باز» زیر اضافه شد).
 
 ---
+
+### بلوک ۳ و ۴ — شروع هم‌زمان (سه مسیر مستقل)
+
+بعد از بلوک ۲، سه زیرتسک بدون فایل مشترک و بدون وابستگی متقابل شناسایی شدند: T-3.1 (`WpLedgerRepository` — پیاده‌سازی پورت موجود)، T-3.2 (`CustomerRepository` جدید + `WpWalletRepository`)، T-4.1 (`ServiceStatus`، دامنه‌ی خالص). هر سه روی Schema.php/پورت‌های بلوک ۰ متکی‌اند، نه روی هم — پس هم‌زمان برده شدند جلو.
+
+- **T-3.1 — `WpLedgerRepository`** — قفل `SELECT ... FOR UPDATE` روی سطر wallet داخل تراکنش SQL؛ idempotency دو لایه (چک اول سریع + fallback بعد از تشخیص نقض unique key در INSERT، برای race واقعی). جزئیات کامل در بخش «پذیرش» بلوک ۳ در `BACKLOG.md`.
+- **T-3.2 — `CustomerRepository` + `WpWalletRepository`** — یک ایجنت پس‌زمینه شروع کرد اما میان‌کار قطع شد (فرآیند Claude Code قبل از اتمام بسته شد)؛ از خروجی‌اش فقط `CustomerRepository.php` (پورت) و `WpCustomerRepository.php` باقی ماندند — هر دو بازبینی و تأیید شدند (کیفیت خوب، دقیقاً مطابق بریف). `WpWalletRepository.php` که ناتمام مانده بود مستقیماً تکمیل شد.
+- **T-4.1 — `ServiceStatus`** — یک ایجنت پس‌زمینه‌ی دوم هم با همان قطعی از بین رفت، بدون هیچ فایلی از خودش به‌جا بماند؛ مستقیماً از نو نوشته شد.
+- **درس گرفته‌شده:** ایجنت‌های پس‌زمینه در صورت بسته‌شدن پردازش میزبان، state خود را کامل از دست می‌دهند — کار نیمه‌کاره‌شان گاهی روی دیسک می‌ماند (T-3.2) و گاهی هیچ (T-4.1). بعد از هر بازیابی از این حالت باید `git status` چک شود قبل از فرض بر تکمیل یا عدم تکمیل هر تسک.
+- **تست:** یک fake `$wpdb` واحد (اسکریپت یک‌بارمصرف، خارج از ریپو) هر سه‌ی `WpCustomerRepository`/`WpWalletRepository`/`WpLedgerRepository` را با هم پوشش داد — ۲۴ چک سبز؛ `ServiceStatus` جدا با ۲۶ چک سبز. `php -l` روی هر ۴ فایل سبز.
 
 ## تصمیم‌های باز (باید در بلوک‌های بعدی حل شوند)
 
