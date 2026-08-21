@@ -225,18 +225,28 @@ All future operations for that Service use the persisted credential.
 
 ## 12. `MockCdnClient`
 
+**Status: implemented in T-1.4** (`src/Arvan/MockCdnClient.php`). No constructor
+dependencies at all — no `HttpClient`, no credential, no WordPress — state
+lives only in a private in-memory array for the life of the instance.
+
 Must implement exactly the same port.
 
 Capabilities (matches the finalized four-method port, §3):
-- deterministic create,
+- deterministic create (resource id derived from the domain, not random),
 - resource read,
-- configurable outbound traffic,
+- configurable outbound traffic (`setOutboundTraffic()`),
 - delete,
-- injectable failure states.
+- injectable failure states (`forceFailure()` / `clearFailure()`, checked
+  before any other logic in every method),
+- `seedResource()` to register a resource as already existing without going
+  through `createResource()` first.
 
 Mock data must be obviously test/demo data in code.
 
 The application layer must not branch on “mock vs real” except configuration/driver selection.
+Verified: a shared integration scenario (create → get → traffic → delete →
+not-found) run once against each driver produces the same domain-level shape
+from both — see docs/PROGRESS.md.
 
 ## 13. Logging
 

@@ -171,26 +171,36 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
     - retry فقط روی `getResource`/`getOutboundTrafficUsage` (حداکثر ۳ تلاش)؛ `createResource`/`deleteResource` هرگز خودکار retry نمی‌شوند
     - پیام‌های exception هرگز کلید API یا بدنه‌ی خام provider را افشا نمی‌کنند
 
-- [ ] **T-1.4** `MockCdnClient`
+- [x] **T-1.4** `MockCdnClient`
   - contract دقیقاً مشابه Production client
   - deterministic resource IDs
   - configurable outbound-traffic fixture
-  - hold/unhold/delete states
+  - create/get/traffic/delete states (منطبق با ۴ متد نهایی؛ hold/unhold از خودِ اینترفیس در T-1.2 حذف شدند)
   - **0.5h**
+  - پذیرش:
+    - بدون constructor dependency (نه HttpClient، نه API key، نه وردپرس) — state فقط در حافظه
+    - `forceFailure`/`clearFailure`/`seedResource`/`setOutboundTraffic` — ۴ ابزار کمکی تست، خارج از قرارداد `CdnClient`
+    - همان `CdnProviderException` واقعی را پرتاب می‌کند (نه یک کلاس جعلی)؛ ۳۳ چک خودکار سبز
 
-**DoD:** یک integration scenario با هر دو driver خروجی domain-level مشابه تولید کند.
+**DoD:** ✅ یک integration scenario با هر دو driver خروجی domain-level مشابه تولید کند — تأیید شد با ۲۰ چک مشترک (create → get → traffic → delete → not-found) روی هر دو driver، بدون تفاوت در سناریوی تست.
 
 ---
 
 # بلوک ۲ — Reseller Setup + Secrets · 2.5h
 
-- [ ] **T-2.1** 🔒 `SecretStore`
+- [x] **T-2.1** 🔒 `SecretStore`
   - AES-256-GCM یا implementation امن معادل
   - encryption key از config/salts
   - no plaintext DB
   - **0.5h**
+  - پذیرش:
+    - `wp/Security/WordPressSecretStore.php` — پیاده‌سازی اینترفیس T-0.8، بدون تغییر در قرارداد
+    - کلید از `ARVAN_ENCRYPTION_KEY` (اگر تعریف شده) وگرنه از `AUTH_KEY`+`SECURE_AUTH_KEY`؛ اگر هیچ‌کدام نبود، constructor throw می‌کند (بدون fallback به کلید ثابت)
+    - nonce تصادفی جدا برای هر `encrypt()`؛ دو رمزنگاری از یک plaintext ciphertext متفاوت می‌دهند
+    - `decrypt()` روی ciphertext دستکاری‌شده یا رمزشده با کلید غلط `RuntimeException` می‌دهد (تست شد با کلید واقعاً متفاوت در یک پروسه‌ی جدا)
+    - ۱۷ چک خودکار در ۴ پروسه‌ی PHP جدا (برای تست دقیق سناریوهای مختلف ثابت‌های wp-config) سبز
 
-- [ ] **T-2.2** 🔒 Access Token Gate
+- [x] **T-2.2** 🔒 Access Token Gate
   - تعریف حداقل دو Demo Token ساده، مثلاً:
     - `arvan_test_123`
     - `arvan_test_456`
@@ -201,8 +211,15 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
   - rate limit failed attempts
   - فروش و تنظیم Markup تا قبل از validation موفق disabled
   - **0.5h**
+  - پذیرش:
+    - `wp/Security/AccessTokenGate.php` + `data/access-token-hashes.php` (فقط هش، بدون هیچ توکن خام حتی در کامنت)
+    - هیچ ارتباطی با `SecretStore`/`WordPressSecretStore` ندارد؛ `SecretStore` دست‌نخورده ماند
+    - rate limit: بعد از ۵ تلاش ناموفق، حتی توکن درست هم رد می‌شود تا وقتی transient منقضی شود (۱۵ دقیقه)؛ موفقیت شمارنده را ریست می‌کند
+    - فلگ فعال‌سازی (`arvan_reseller_access_token_verified`) یک option بولین است، نه یک secret — `isActivated()` نقطه‌ی اتصال آینده برای قفل کردن ویزارد/Markup است؛ سیم‌کشی واقعی UI در T-2.4 انجام می‌شود
+    - `uninstall.php` اصلاح شد: نام قدیمی و اشتباه `arvan_reseller_access_token` (که هیچ‌وقت مقداری در آن نمی‌رفت) حذف شد؛ نام واقعی به لیست purge-only اضافه شد (نه لیست «همیشه پاک شو»، چون این یک secret نیست)
+    - ۲۰ چک خودکار سبز، شامل اجرای واقعی `uninstall.php` با `$wpdb`/`get_option` شبیه‌سازی‌شده
 
-- [ ] **T-2.3** Multi API Key Management
+- [x] **T-2.3** Multi API Key Management
   - add/edit label
   - product/use label
   - default key
@@ -210,6 +227,12 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
   - test connection
   - show last4 only
   - **0.75h**
+  - پذیرش:
+    - `src/Ports/ApiKeyRepository.php` (پورت جدید، هم‌الگو با ۴ Repository موجود از T-0.8)، `wp/Persistence/WpApiKeyRepository.php`، `src/Arvan/ApiKeyConnectionTester.php` — بدون تغییر در schema (ستون‌های لازم از T-0.2 موجود بودند)
+    - Repository هیچ‌جا پارامتر plaintext ندارد — رمزنگاری بیرون از آن انجام می‌شود؛ `SecretStore`/`AccessTokenGate` دست‌نخورده ماندند
+    - تشخیص تکراری از روی `fingerprint` (SHA-256 کلید): افزودن همان کلید دوباره سطر جدید نمی‌سازد، همان id قبلی را برمی‌گرداند
+    - «تست اتصال» بدون `ping`: از `getResource()` موجود روی یک دامنه‌ی probe ثابت استفاده می‌کند؛ `AUTHENTICATION_FAILED`/`FORBIDDEN` → رد شد، بقیه‌ی دسته‌ها → نامشخص (نه لزوماً خراب)؛ پیام‌ها همیشه رشته‌ی ثابت دست‌نویس‌اند، هرگز از خروجی provider گرفته نمی‌شوند
+    - ۲۹ چک خودکار سبز — شامل چرخه‌ی کامل رمزنگاری واقعی (`WordPressSecretStore`) از میان Repository و تست سناریوهای موفق/ناموفق اتصال با `MockCdnClient`
 
 - [ ] **T-2.4** Setup Wizard
   1. Access Token

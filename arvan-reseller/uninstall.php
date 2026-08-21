@@ -4,9 +4,13 @@
  *
  * Deleting a billing plugin should not silently destroy a ledger, so table
  * removal is opt-in: the reseller has to tick "also delete all data" in the
- * settings screen first. Secrets are a different matter — encrypted API keys and
- * the access token are always wiped, because leaving credentials behind in an
- * abandoned database is the worse failure.
+ * settings screen first. Secrets are a different matter — encrypted API keys
+ * are always wiped, because leaving credentials behind in an abandoned
+ * database is the worse failure. The Access Token gate never stores a
+ * secret value at all (only a hash allowlist shipped in the plugin's own
+ * files, and a boolean "verified" flag) — see wp/Security/AccessTokenGate.php
+ * — so its activation flag is cleaned up alongside the other regular
+ * settings, not treated as a secret.
  *
  * @package ArvanReseller
  */
@@ -23,7 +27,6 @@ global $wpdb;
  * Always removed, regardless of the purge setting.
  */
 $secret_options = [
-	'arvan_reseller_access_token',
 	'arvan_reseller_encryption_check',
 ];
 
@@ -67,12 +70,15 @@ $options = [
 	'arvan_reseller_branding',
 	'arvan_reseller_pricing',
 	'arvan_reseller_limits',
+	'arvan_reseller_access_token_verified',
 	'arvan_reseller_purge_on_uninstall',
 ];
 
 foreach ( $options as $option ) {
 	delete_option( $option );
 }
+
+delete_transient( 'arvan_reseller_token_attempts' );
 
 $hooks = [
 	'arvan_meter_usage',
