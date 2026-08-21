@@ -8,13 +8,13 @@
 
 ## الان کجاییم
 
-**بلوک ۰ و بلوک ۱ کامل تمام شدند (DoD هر دو با تست واقعی تأیید شد). بلوک ۲ — Reseller Setup + Secrets — بعدی است، با T-2.1 (`SecretStore`).**
+**بلوک ۰، ۱ و ۲ کامل تمام شدند. بلوک ۳ — Wallet + Ledger + Payment — بعدی است، با T-3.1 (`LedgerService`).**
 
 ```
 بلوک ۰  ██████████ 100%   تمام (۹/۹ تسک)
 بلوک ۱  ██████████ 100%   تمام (۴/۴ تسک) — DoD تأیید شد: هر دو driver قابل‌تعویض‌اند
-بلوک ۲  ░░░░░░░░░░   0%   بعدی: T-2.1 SecretStore
-بلوک ۳  ░░░░░░░░░░   0%
+بلوک ۲  ██████████ 100%   تمام (۴/۴ تسک) — DoD تأیید شد با کلیک واقعی روی وردپرس محلی
+بلوک ۳  ░░░░░░░░░░   0%   بعدی: T-3.1 LedgerService
 بلوک ۴  ░░░░░░░░░░   0%
 بلوک ۵  ░░░░░░░░░░   0%
 بلوک ۶  ░░░░░░░░░░   0%
@@ -25,7 +25,9 @@
 بلوک ۱۱ ░░░░░░░░░░   0%
 ```
 
-**قدم بعدی: T-2.1 — `SecretStore`** (رمزنگاری AES-256-GCM برای کلید API آروان، طبق SECURITY.md §۴).
+**قدم بعدی: T-3.1 — `LedgerService`** (دفتر کل append-only، atomic، طبق CLAUDE.md).
+
+**نکته‌ی محیطی:** سایت تست محلی (`arvan-test.test`) الان در وضعیت «ویزارد تمام‌شده» است. برای دموی از صفر، باید پلاگین را deactivate/activate کرد یا آپشن‌های `arvan_reseller_*` را پاک کرد.
 
 ---
 
@@ -35,7 +37,7 @@
 |---|---|---|---|---|
 | ۰ | Foundation | ✅ تمام | 9/9 | `arvan-reseller.php`, `Schema.php`, `Installer.php`, `Capabilities.php`, `Scheduler.php`, `Money.php`, `MarkupRate.php`, `ChargeBreakdown.php`, `ResellerPricing.php`, `src/Ports/*` (۸ فایل) |
 | ۱ | CDN API + Mock | ✅ تمام | 4/4 | `src/Arvan/CdnClient.php`, `CdnResource.php`, `OutboundTrafficUsage.php`, `ArvanCdnClient.php`, `MockCdnClient.php`, `CdnProviderException.php`, `src/Ports/HttpClient.php`, `wp/Http/WordPressHttpClient.php` |
-| ۲ | Reseller Setup + Secrets | ⏳ شروع‌نشده | 0/4 | — |
+| ۲ | Reseller Setup + Secrets | ✅ تمام | 4/4 | `wp/Security/WordPressSecretStore.php`, `AccessTokenGate.php`, `data/access-token-hashes.php`, `src/Ports/ApiKeyRepository.php`, `wp/Persistence/WpApiKeyRepository.php`, `src/Arvan/ApiKeyConnectionTester.php`, `wp/Admin/ResellerSettings.php`, `SetupWizard.php`, `templates/setup-wizard.php` |
 | ۳ | Wallet + Ledger + Payment | ⏳ شروع‌نشده | 0/6 | — |
 | ۴ | CDN Provisioning + Mapping | ⏳ شروع‌نشده | 0/4 | — |
 | ۵ | Metering + Billing | ⏳ شروع‌نشده | 0/4 | — |
@@ -77,6 +79,24 @@
 
 **بستن بلوک ۱ — DoD واقعاً تست شد، نه فقط بازبینی کد.** یک سناریوی واحد (`create → get → traffic → delete → not-found`) بدون هیچ تغییری، یک‌بار روی `MockCdnClient` و یک‌بار روی `ArvanCdnClient` (با `HttpClient` اسکریپت‌شده که یک توالی موفق واقعی را شبیه‌سازی می‌کرد) اجرا شد. هر ۲۰ چک (۱۰ در هر driver) سبز شد — یعنی جای‌گزین‌پذیری دو driver ادعا نیست، اثبات‌شده است.
 
+### بلوک ۲ — Reseller Setup + Secrets (تمام شد)
+
+- **T-2.1 — `SecretStore`** — `wp/Security/WordPressSecretStore.php`: AES-256-GCM با OpenSSL. کلید رمزنگاری از ثابت `ARVAN_ENCRYPTION_KEY` (اگر تعریف شده باشد) وگرنه از salt‌های وردپرس (`AUTH_KEY` + `SECURE_AUTH_KEY`) با SHA-256 مشتق می‌شود؛ اگر هیچ‌کدام موجود نبود exception پرتاب می‌شود — هیچ کلید هاردکدشده‌ی fallback در کد نیست. فرمت ciphertext: `base64(nonce . tag . ciphertext)`، خودکفا (نیازی به ذخیره‌ی جدای IV/tag نیست).
+- **T-2.2 — `AccessTokenGate`** — `wp/Security/AccessTokenGate.php` + `data/access-token-hashes.php`. تصمیم معماری: این کلاس عمداً یک Port نیست (فقط یک پیاده‌سازی واقعی دارد، جایگزینی/mock معنی‌داری ندارد)، برخلاف repositoryهای جدول‌محور. اعتبارسنجی یک‌طرفه با `password_verify()` روی هش‌های bundle‌شده (بدون هیچ توکن خام در کد). Rate limit: ۵ تلاش در بازه‌ی ۱۵ دقیقه‌ای با WordPress transient. موفقیت یک آپشن boolean (`arvan_reseller_access_token_verified`) ست می‌کند. تعدیل کاربر: توکن‌های دمو دیگر به‌صورت plaintext کنار هش‌ها در کامنت نوشته نمی‌شوند.
+  - **اسناد هم‌ترازشده:** `uninstall.php` — `arvan_reseller_access_token` (که دیگر وجود نداشت) از آرایه‌ی همیشه-پاک‌شونده حذف و `arvan_reseller_access_token_verified` + transient به purge اضافه شد.
+- **T-2.3 — `ApiKeyRepository`** — `src/Ports/ApiKeyRepository.php` (پورت) + `wp/Persistence/WpApiKeyRepository.php` (پیاده‌سازی `$wpdb`) + `src/Arvan/ApiKeyConnectionTester.php`. اصل طراحی: repository فقط «persistence خنگ» است، هرگز کلید plaintext نمی‌بیند — فقط ciphertext + fingerprint (`sha256` روی plaintext، برای جلوگیری از تکرار) + last-four رقم. تست اتصال چون `ping()` روی API آروان وجود ندارد (طبق T-1.1) از `getResource()` روی یک دامنه‌ی probe ثابت و بی‌معنی (`arvan-reseller-connection-probe.invalid`) استفاده می‌کند؛ موفقیت یعنی «هر پاسخ واقعی، حتی not-found»، شکست فقط `AUTHENTICATION_FAILED`/`FORBIDDEN` است. ترتیب test-then-persist: هرگز کلیدی که تست اتصالش شکست خورده ذخیره نمی‌شود.
+  - **باگ تست پیدا و رفع شد:** فراموش شد `$GLOBALS['wpdb']` قبل از ساخت repository ست شود (چون `Schema::table()` داخلی `global $wpdb;` می‌کند، نه پارامتر گرفته‌شده)؛ باعث warning «read property prefix on null» شد — نه یک باگ کد پلاگین، باگ اسکریپت تست.
+- **T-2.4 — Setup Wizard** — `wp/Admin/SetupWizard.php` + `wp/Admin/ResellerSettings.php` + `wp/Admin/templates/setup-wizard.php`. تنظیمات reseller در ۴ آپشن وردپرس گروه‌بندی‌شده (`arvan_reseller_branding`, `arvan_reseller_pricing`, `arvan_reseller_limits`, `arvan_reseller_settings`) ذخیره می‌شوند، نه یک آپشن به‌ازای هر فیلد. ویزارد ۵ مرحله‌ای با الگوی POST-redirect-GET.
+  - **تعدیل حین‌کار کاربر:** مرحله‌ی ۵ در طراحی اولیه یک انتخاب‌گر Cards/Compact داشت؛ کاربر صریحاً دستور داد حذف شود چون صفحه‌ی فروش عمومی CDN که این انتخاب رویش اثر می‌گذاشت (T-7.3) هنوز ساخته نشده — نمایش یک گزینه‌ی بی‌اثر گمراه‌کننده است. جایگزین شد با یک خلاصه‌ی فقط-خواندنی از مراحل ۱ تا ۴ و دکمه‌ی Finish. `DESIGN.md` §۸ و `SCREEN-SPECS.md` §۱ هم‌زمان به‌روزرسانی شدند.
+  - **سه باگ واقعی وردپرس، فقط با تست زنده روی `arvan-test.test` پیدا شدند** (هیچ‌کدام با تست خارج از وردپرس قابل‌کشف نبودند):
+    1. «headers already sent»: `wp_safe_redirect()` داخل callback رندر `add_submenu_page()` صدا زده می‌شد، که بعد از خروجی هدر صفحه اجرا می‌شود. رفع: پردازش POST به یک متد `handleRequest()` منتقل شد که به اکشن `load-{$hook}` هوک شده (قبل از هر خروجی اجرا می‌شود).
+    2. `add_submenu_page()` با parent slug اشتباه (`null` به‌جای `''` مستندشده برای صفحه‌ی مخفی) صدا زده شده بود؛ این به‌آرامی `$hook`/`load-{$hook}` را می‌شکست — فرم مرحله‌ی ۱ را دوباره نشان می‌داد بدون خطا و بدون پیشرفت. رفع: `''`.
+    3. آدرس ریدایرکت اشتباه: `admin_url('admin.php')` (بدون پارامتر `page` صفحه‌ی سفید خالی است) به‌جای `admin_url('index.php')`. با اسکرین‌شات واقعی صفحه‌ی سفید پیدا شد.
+  - **دو رویداد امنیتی حین تست:** کاربر مستقیماً ایمیل/رمز ورود وردپرس را در چت پیشنهاد داد؛ طبق قانون «هرگز رمز/API key/توکن مالی در هیچ فیلدی وارد نکن، حتی با اجازه‌ی صریح کاربر»، از تایپ رمز خودداری شد و از کاربر خواسته شد خودش وارد شود (کاربر پذیرفت و انجام داد). برای تست مسیر موفق واقعیِ اعتبارسنجی API Key (که نیاز به کلید واقعی ArvanCloud دارد و Claude اجازه‌ی واردکردن اعتبارنامه ندارد)، یک `MockCdnClient` موقت و به‌وضوح کامنت‌گذاری‌شده جایگزین `ArvanCdnClient` شد فقط برای تأیید، سپس بلافاصله برگردانده شد — با `grep` تأیید شد هیچ اثری از آن باقی نمانده.
+  - **اسناد هم‌ترازشده:** `docs/API.md`، `docs/TECH.md` (اضافه‌شدن `HttpClient` به Ports، اصلاح مسیر واقعی `ArvanCdnClient`/`MockCdnClient` در `src/Arvan/`).
+
+**بستن بلوک ۲ — DoD با کلیک واقعی روی وردپرس محلی تأیید شد** (نه فقط بازبینی کد)، شامل تکمیل کامل ویزارد ۵ مرحله تا ریدایرکت نهایی به Dashboard. تنها بخش تأییدنشده: مسیر موفق واقعی (غیر-Mock) `ArvanCdnClient` داخل ویزارد با یک اعتبارنامه‌ی واقعی ArvanCloud هرگز end-to-end تست نشده — چون Claude اجازه‌ی واردکردن API key واقعی ندارد (به «تصمیم‌های باز» زیر اضافه شد).
+
 ---
 
 ## تصمیم‌های باز (باید در بلوک‌های بعدی حل شوند)
@@ -89,3 +109,5 @@
 | فیلدهای دقیق JSON پاسخ (`id`, `domain`, `created_at`، فیلد مقدار bucket ترافیک) هنوز با کلید واقعی تست نشده‌اند | `ArvanCdnClient::mapResource()`/`mapTrafficUsage()` — نگاشت‌ها ایزوله‌اند، اصلاح ارزان است | T-1.3 |
 | `wp/Support/Autoloader.php` گارد `ABSPATH` دارد؛ راهی برای لود `src/` بدون وردپرس وجود ندارد | «Zero-WordPress grep/load proof» اگر دوباره باز شود | T-1.3 |
 | `docs/BACKLOG.md` بلوک ۶ هنوز به `holdResource` ارجاع می‌دهد | مستندسازی بلوک ۶ | T-1.2 |
+| مسیر موفق واقعی (غیر-Mock) `ArvanCdnClient` داخل Setup Wizard هرگز با اعتبارنامه‌ی واقعی ArvanCloud end-to-end تست نشده (Claude اجازه‌ی واردکردن API key واقعی ندارد؛ فقط با `MockCdnClient` موقت تأیید شد) | T-2.4 handleApiKey(); اگر یک اعتبارنامه‌ی تست واقعی در دسترس قرار گرفت باید توسط کاربر تأیید شود | T-2.4 |
+| سایت تست محلی (`arvan-test.test`) در وضعیت «ویزارد تمام‌شده» رها شده | نیاز به reset (deactivate/activate یا پاک‌کردن آپشن‌های `arvan_reseller_*`) قبل از دموی از صفر | T-2.4 |

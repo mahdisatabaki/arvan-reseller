@@ -138,7 +138,11 @@ Five steps:
 2. Arvan API Key
 3. Business Information
 4. Markup + Lifecycle
-5. CDN Layout + Finish
+5. Finish — a read-only summary of steps 1–4, then Save. No layout picker
+   here: the public CDN sales page that would use a layout choice is T-7.3,
+   not this wizard, so T-2.4 does not expose a selector with no visible
+   effect. A default layout value is still stored (silently) so T-7.3 has
+   something to read from day one.
 
 Requirements:
 - progress indicator,

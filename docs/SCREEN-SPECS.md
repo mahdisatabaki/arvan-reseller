@@ -10,15 +10,19 @@ Turn fresh plugin installation into “Ready to Sell”.
 2. API Key
 3. Business Profile
 4. Pricing & Lifecycle
-5. Layout & Finish
+5. Finish — read-only summary of steps 1–4; no layout picker (T-2.4 decision:
+   the public CDN sales page a layout choice would affect is T-7.3, not built
+   yet, so exposing the choice here would have no visible effect)
 
 ### Critical behaviors
 - invalid Access Token blocks later setup,
 - valid test token unlocks Markup setup,
 - API Key is never re-shown in plaintext,
 - connection test has loading/success/failure,
-- Markup >20% rejected server-side,
-- completion leads to Dashboard/CDN page.
+- Markup >20% rejected server-side (verified against a live submission that
+  bypassed the browser's own HTML `max` constraint, not just client-side),
+- completion redirects to the WordPress Dashboard (`index.php`) — the
+  plugin's own Dashboard (T-8.1) and CDN page (T-7.3) do not exist yet.
 
 ### Mobile
 Single-column; sticky/visible primary action without obscuring content.

@@ -13,8 +13,14 @@ declare( strict_types = 1 );
 
 namespace ArvanReseller\Wp;
 
+use ArvanReseller\Arvan\ApiKeyConnectionTester;
+use ArvanReseller\Wp\Admin\ResellerSettings;
+use ArvanReseller\Wp\Admin\SetupWizard;
 use ArvanReseller\Wp\Cron\Scheduler;
 use ArvanReseller\Wp\Installation\Installer;
+use ArvanReseller\Wp\Persistence\WpApiKeyRepository;
+use ArvanReseller\Wp\Security\AccessTokenGate;
+use ArvanReseller\Wp\Security\WordPressSecretStore;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -45,6 +51,29 @@ final class Plugin {
 		add_action( 'init', [ Installer::class, 'migrate' ], 1 );
 
 		add_filter( 'cron_schedules', [ Scheduler::class, 'addIntervals' ] );
+
+		if ( is_admin() ) {
+			$this->bootAdmin();
+		}
+	}
+
+	/**
+	 * Wires the admin-only object graph. Every dependency SetupWizard needs
+	 * is built once, here — the composition root — so SetupWizard itself
+	 * never constructs its own collaborators (T-2.4 design).
+	 */
+	private function bootAdmin(): void {
+		global $wpdb;
+
+		$wizard = new SetupWizard(
+			new AccessTokenGate(),
+			new WordPressSecretStore(),
+			new WpApiKeyRepository( $wpdb ),
+			new ApiKeyConnectionTester(),
+			new ResellerSettings()
+		);
+
+		$wizard->register();
 	}
 
 	public function loadTextdomain(): void {
