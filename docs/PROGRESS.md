@@ -8,11 +8,11 @@
 
 ## الان کجاییم
 
-**بلوک ۰ تمام شده. بلوک ۱ در حال اجراست — T-1.1 و T-1.2 تمام، T-1.3 بعدی است.**
+**بلوک ۰ تمام شده. بلوک ۱ در حال اجراست — T-1.1 تا T-1.3 تمام، T-1.4 (`MockCdnClient`) بعدی است.**
 
 ```
 بلوک ۰  ██████████ 100%   تمام (۹/۹ تسک)
-بلوک ۱  █████░░░░░  50%   T-1.1 ✓  T-1.2 ✓  T-1.3 …  T-1.4 …
+بلوک ۱  ███████░░░  75%   T-1.1 ✓  T-1.2 ✓  T-1.3 ✓  T-1.4 …
 بلوک ۲  ░░░░░░░░░░   0%
 بلوک ۳  ░░░░░░░░░░   0%
 بلوک ۴  ░░░░░░░░░░   0%
@@ -25,7 +25,7 @@
 بلوک ۱۱ ░░░░░░░░░░   0%
 ```
 
-**قدم بعدی: T-1.3 — `ArvanCdnClient`** (پیاده‌سازی واقعی `CdnClient` روی `napi.arvancloud.ir`، طبق یافته‌های اسپایک T-1.1).
+**قدم بعدی: T-1.4 — `MockCdnClient`** (درایور شبیه‌سازی‌شده، همان قرارداد `CdnClient`، بدون هیچ فراخوانی شبکه).
 
 ---
 
@@ -34,7 +34,7 @@
 | بلوک | عنوان | وضعیت | تسک‌های تمام | فایل‌های اصلی |
 |---|---|---|---|---|
 | ۰ | Foundation | ✅ تمام | 9/9 | `arvan-reseller.php`, `Schema.php`, `Installer.php`, `Capabilities.php`, `Scheduler.php`, `Money.php`, `MarkupRate.php`, `ChargeBreakdown.php`, `ResellerPricing.php`, `src/Ports/*` (۸ فایل) |
-| ۱ | CDN API + Mock | 🔄 در حال اجرا | 2/4 | `src/Arvan/CdnClient.php`, `CdnResource.php`, `OutboundTrafficUsage.php` |
+| ۱ | CDN API + Mock | 🔄 در حال اجرا | 3/4 | `src/Arvan/CdnClient.php`, `CdnResource.php`, `OutboundTrafficUsage.php`, `ArvanCdnClient.php`, `CdnProviderException.php`, `src/Ports/HttpClient.php`, `wp/Http/WordPressHttpClient.php` |
 | ۲ | Reseller Setup + Secrets | ⏳ شروع‌نشده | 0/4 | — |
 | ۳ | Wallet + Ledger + Payment | ⏳ شروع‌نشده | 0/6 | — |
 | ۴ | CDN Provisioning + Mapping | ⏳ شروع‌نشده | 0/4 | — |
@@ -65,7 +65,12 @@
 - **T-1.2 — `CdnClient` interface** — طبق یافته‌های T-1.1 محدود شد: فقط ۴ متد (`createResource`, `getResource`, `getOutboundTrafficUsage`, `deleteResource`)؛ `ping` و `holdResource`/`unholdResource` عمداً حذف شدند. دو DTO نرمال‌شده (`CdnResource`, `OutboundTrafficUsage`) بدون هیچ فیلد خام Arvan. پارامتر `Credential` هم حذف شد — هر نمونه‌ی `CdnClient` از قبل به یک کلید متصل ساخته می‌شود، نه per-call.
   - **اسناد هم‌ترازشده:** `docs/API.md` §۳ (امضای متدها) و §۱۲ (قابلیت‌های `MockCdnClient`) با اینترفیس نهایی یکی شدند.
   - **بدهی مستندسازی شناخته‌شده:** `docs/BACKLOG.md` بلوک ۶ (`T-6.3`) هنوز `holdResource` را در سناریوی Suspend ذکر می‌کند — عمداً دست‌نخورده ماند چون حلش وابسته به همان مکانیزم نامعلوم است؛ وقتی به بلوک ۶ رسیدیم باید بازبینی شود.
-- **T-1.3 — `ArvanCdnClient`** — شروع نشده.
+- **T-1.3 — `ArvanCdnClient`** — پیاده‌سازی کامل شد، با یک تعدیل معماری آگاهانه نسبت به پلن اولیه: به‌جای `wp_remote_request()` مستقیم (که TECH.md §۴ اولیه پیشنهاد داده بود)، یک پورت جدید `src/Ports/HttpClient.php` ساخته شد و `ArvanCdnClient` **فقط** به همین پورت وابسته است — نه به وردپرس، نه به `curl_*` مستقیم. پیاده‌سازی واقعی روی وردپرس در `wp/Http/WordPressHttpClient.php` است.
+  - **abstraction اضافه:** `src/Arvan/CdnProviderException.php` — یک کلاس واحد برای هر ۸ دسته‌ی خطای API.md §۱۰؛ `retryable` از روی `category` مشتق می‌شود (نه پارامتر جدا) تا هیچ call site نتواند با آن اشتباه کند.
+  - **bounded retry:** حداکثر ۳ تلاش، فقط روی `getResource`/`getOutboundTrafficUsage` (GET، بی‌اثر جانبی). `createResource`/`deleteResource` هرگز خودکار retry نمی‌شوند — طبق API.md §۹، تکرار یک POST/DELETE غیر-idempotent ریسک ساخت منبع تکراری دارد.
+  - **تست:** ۳۰ چک خودکار (اسکریپت یک‌بارمصرف، خارج از ریپو) بدون بوت‌استرپ وردپرس اجرا شد — مسیر موفق، ۴۰۱/۴۰۴/۴۰۹/۴۲۹/۵xx، شکست transport، بازیابی بعد از retry، عدم retry روی POST، و عدم نشت کلید API/بدنه‌ی خام provider در پیام خطا. همه سبز.
+  - **یافته‌ی جانبی:** `wp/Support/Autoloader.php` گارد `ABSPATH` دارد، پس حتی برای لود کلاس‌های `src/` هم باید مسیر جایگزین باز کرد (تست از این فایل عبور نکرد، مستقیم `require` کرد). این با «Zero-WordPress grep proof: خارج از P0» در BACKLOG بلوک ۰ سازگار است؛ اگر آن تسک دوباره باز شد، این نکته پیش‌نیازش است.
+  - **بدهی مستندسازی شناخته‌شده‌ی جدید:** فیلدهای دقیق JSON پاسخ (`id`, `domain`, `created_at` روی resource؛ نام فیلد مقدار ترافیک در هر bucket) هنوز با کلید واقعی تأیید نشده‌اند — سطح اطمینان MEDIUM، نه HIGH. هرکدام در یک متد نگاشت جدا ایزوله شده تا اصلاح بعدی فقط همان‌جا اثر بگذارد.
 - **T-1.4 — `MockCdnClient`** — شروع نشده.
 
 ---
@@ -74,7 +79,9 @@
 
 | موضوع | کجا اثر می‌گذارد | باز از |
 |---|---|---|
-| مکانیزم واقعی hold/unhold روی API آروان پیدا نشد | T-1.3 (`ArvanCdnClient`)، T-6.3/T-6.4 (Suspend/Resume) | T-1.1 |
-| مقادیر واقعی enum فیلد `status` روی Domain resource | T-1.3، نگاشت به `ServiceStatus` محلی | T-1.1 |
-| واحد دقیق ترافیک خروجی («byte» قوی حدس زده شده، تأیید ۱۰۰٪ نشده) | T-1.3، `UsagePricingAdapter` | T-1.1 |
+| مکانیزم واقعی hold/unhold روی API آروان پیدا نشد | T-6.3/T-6.4 (Suspend/Resume) | T-1.1 |
+| مقادیر واقعی enum فیلد `status` روی Domain resource | نگاشت به `ServiceStatus` محلی (بلوک ۴) | T-1.1 |
+| واحد دقیق ترافیک خروجی («byte» قوی حدس زده شده، تأیید ۱۰۰٪ نشده) | `UsagePricingAdapter` (بلوک ۵) | T-1.1 |
+| فیلدهای دقیق JSON پاسخ (`id`, `domain`, `created_at`، فیلد مقدار bucket ترافیک) هنوز با کلید واقعی تست نشده‌اند | `ArvanCdnClient::mapResource()`/`mapTrafficUsage()` — نگاشت‌ها ایزوله‌اند، اصلاح ارزان است | T-1.3 |
+| `wp/Support/Autoloader.php` گارد `ABSPATH` دارد؛ راهی برای لود `src/` بدون وردپرس وجود ندارد | «Zero-WordPress grep/load proof» اگر دوباره باز شود | T-1.3 |
 | `docs/BACKLOG.md` بلوک ۶ هنوز به `holdResource` ارجاع می‌دهد | مستندسازی بلوک ۶ | T-1.2 |

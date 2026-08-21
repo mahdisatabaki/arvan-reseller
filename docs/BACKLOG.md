@@ -157,7 +157,7 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
     - Provider-agnostic؛ هیچ DTO خام Arvan در لایه‌ی دامنه نشت نمی‌کند
     - `ping`, `holdResource`, `unholdResource` عمداً حذف شدند — اسپایک T-1.1 مکانیزم واقعی‌شان را در API آروان پیدا نکرد؛ حدس زدن endpoint طبق CLAUDE.md §Work Protocol مجاز نیست (باز مانده تا رفع ابهام، API.md §14)
 
-- [ ] **T-1.3** `ArvanCdnClient`
+- [x] **T-1.3** `ArvanCdnClient`
   - HTTPS only
   - TLS verify
   - timeout
@@ -165,6 +165,11 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
   - secret redaction
   - bounded retry only for safe/retryable requests
   - **0.5h**
+  - پذیرش:
+    - فقط به `HttpClient` (`src/Ports/HttpClient.php`) وابسته است، نه `wp_remote_request` و نه `curl_*` مستقیم — تصمیم معماری این پیام (نه TECH.md اولیه)، تأییدشده با ۳۰ چک خودکار بدون بوت‌استرپ وردپرس
+    - `CdnProviderException` تنها abstraction اضافه؛ ۸ دسته‌ی API.md §۱۰، `retryable` از روی دسته مشتق می‌شود
+    - retry فقط روی `getResource`/`getOutboundTrafficUsage` (حداکثر ۳ تلاش)؛ `createResource`/`deleteResource` هرگز خودکار retry نمی‌شوند
+    - پیام‌های exception هرگز کلید API یا بدنه‌ی خام provider را افشا نمی‌کنند
 
 - [ ] **T-1.4** `MockCdnClient`
   - contract دقیقاً مشابه Production client

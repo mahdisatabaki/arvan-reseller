@@ -52,7 +52,9 @@ Domain
            ↓
 Ports
 ├── Repositories
-├── CdnClient
+├── CdnClient        (src/Arvan/CdnClient.php)
+├── HttpClient        (src/Ports/HttpClient.php — what CdnClient's real
+│                      adapter depends on, instead of wp_remote_request/curl)
 ├── SecretStore
 ├── Mailer
 ├── Clock
@@ -84,9 +86,8 @@ arvan-reseller/
 │   ├── Plugin.php
 │   ├── Installation/
 │   ├── Persistence/
-│   ├── Arvan/
-│   │   ├── ArvanCdnClient.php
-│   │   └── MockCdnClient.php
+│   ├── Http/
+│   │   └── WordPressHttpClient.php   (implements src/Ports/HttpClient.php)
 │   ├── Security/
 │   ├── Cron/
 │   ├── Admin/
