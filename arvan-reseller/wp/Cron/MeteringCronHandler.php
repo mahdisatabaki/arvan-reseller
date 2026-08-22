@@ -8,10 +8,10 @@
  * of a billing run, not a duplicated admin-triggered copy).
  *
  * Per-service `api_key_id` (DATA-MODEL.md §8) means a single shared
- * `CdnClient` cannot cover every due service — one is built per service
- * here, in this WP-layer class, since only it may touch `SecretStore` and
- * `WordPressHttpClient` (the same boundary `ProvisioningService`/
- * `MeteringService` themselves stay on the far side of).
+ * `CdnClient` cannot cover every due service — one is resolved per service
+ * here via `CdnClientResolver` (T-7.3 extracted this from what used to be
+ * this class's own inline decrypt-and-construct logic, once the CDN order
+ * flow needed the same step starting from a different lookup).
  *
  * The transient lock is T-5.2's "cron/process lock": WP-Cron can fire the
  * same hook from two overlapping requests (it is traffic-triggered, not a
@@ -34,7 +34,6 @@ declare( strict_types = 1 );
 
 namespace ArvanReseller\Wp\Cron;
 
-use ArvanReseller\Arvan\ArvanCdnClient;
 use ArvanReseller\Arvan\CdnClient;
 use ArvanReseller\Arvan\CdnProviderException;
 use ArvanReseller\Billing\BillingService;
@@ -42,7 +41,6 @@ use ArvanReseller\Domain\Money;
 use ArvanReseller\Lifecycle\SuspensionEngine;
 use ArvanReseller\Lifecycle\ThresholdPolicyResolver;
 use ArvanReseller\Metering\MeteringService;
-use ArvanReseller\Ports\ApiKeyRepository;
 use ArvanReseller\Ports\Clock;
 use ArvanReseller\Ports\CustomerRepository;
 use ArvanReseller\Ports\SecretStore;
@@ -51,9 +49,8 @@ use ArvanReseller\Ports\WalletRepository;
 use ArvanReseller\Pricing\MarkupRate;
 use ArvanReseller\Wallet\LowBalanceNotifier;
 use ArvanReseller\Wp\Admin\ResellerSettings;
-use ArvanReseller\Wp\Http\WordPressHttpClient;
+use ArvanReseller\Wp\Arvan\CdnClientResolver;
 use ArvanReseller\Wp\Support\Capabilities;
-use RuntimeException;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -65,8 +62,7 @@ final class MeteringCronHandler {
 
 	public function __construct(
 		private readonly ServiceRepository $services,
-		private readonly ApiKeyRepository $apiKeys,
-		private readonly SecretStore $secretStore,
+		private readonly CdnClientResolver $cdnClients,
 		private readonly MeteringService $metering,
 		private readonly BillingService $billing,
 		private readonly ResellerSettings $settings,
@@ -212,22 +208,8 @@ final class MeteringCronHandler {
 	}
 
 	private function resolveClient( int $api_key_id ): ?CdnClient {
-		if ( 0 === $api_key_id ) {
-			return null;
-		}
+		$resolved = $this->cdnClients->resolveById( $api_key_id );
 
-		$key = $this->apiKeys->find( $api_key_id );
-
-		if ( null === $key || 'active' !== $key['status'] ) {
-			return null;
-		}
-
-		try {
-			$plaintext = $this->secretStore->decrypt( $key['ciphertext'] );
-		} catch ( RuntimeException ) {
-			return null;
-		}
-
-		return new ArvanCdnClient( new WordPressHttpClient(), $plaintext );
+		return null === $resolved ? null : $resolved['client'];
 	}
 }

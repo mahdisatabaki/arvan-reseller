@@ -145,6 +145,19 @@ final class WpServiceRepository implements ServiceRepository {
 		$this->db->update( $this->table(), $data, [ 'id' => $service_id ], $format, [ '%d' ] );
 	}
 
+	public function allForCustomer( int $customer_id ): array {
+		$rows = $this->db->get_results(
+			$this->db->prepare(
+				'SELECT * FROM %i WHERE customer_id = %d ORDER BY created_at DESC',
+				$this->table(),
+				$customer_id
+			),
+			ARRAY_A
+		);
+
+		return is_array( $rows ) ? $rows : [];
+	}
+
 	public function findSuspendedByCustomer( int $customer_id, string $reason ): array {
 		$rows = $this->db->get_results(
 			$this->db->prepare(

@@ -310,6 +310,72 @@
 	color: var( --arvan-color-fg-muted );
 }
 
+/* ---------- Topbar (T-7.2/T-7.3+: shared nav across every customer screen) ---------- */
+
+.arvan-topbar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: var( --arvan-space-3 );
+	padding: var( --arvan-space-3 ) var( --arvan-space-4 );
+	border-bottom: 1px solid var( --arvan-color-stroke );
+	margin-bottom: var( --arvan-space-4 );
+}
+
+.arvan-topbar__brand {
+	font-weight: 700;
+	font-size: var( --arvan-font-size-lg );
+	color: var( --arvan-color-fg );
+	text-decoration: none;
+}
+
+.arvan-topbar__nav {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var( --arvan-space-3 );
+}
+
+.arvan-topbar__nav a {
+	color: var( --arvan-color-fg-muted );
+	text-decoration: none;
+	font-size: var( --arvan-font-size-sm );
+}
+
+.arvan-topbar__nav a:hover {
+	color: var( --arvan-color-brand );
+}
+
+.arvan-topbar__balance {
+	background: var( --arvan-color-bg-soft );
+	color: var( --arvan-color-fg );
+}
+
+/* ---------- Tabs (server-rendered, ?tab= query switching — no JS needed) ---------- */
+
+.arvan-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var( --arvan-space-2 );
+	border-bottom: 1px solid var( --arvan-color-stroke );
+	margin-bottom: var( --arvan-space-4 );
+}
+
+.arvan-tabs a {
+	padding: var( --arvan-space-2 ) var( --arvan-space-3 );
+	color: var( --arvan-color-fg-muted );
+	text-decoration: none;
+	font-size: var( --arvan-font-size-sm );
+	font-weight: 500;
+	border-bottom: 2px solid transparent;
+}
+
+.arvan-tabs a.is-active {
+	color: var( --arvan-color-brand );
+	border-bottom-color: var( --arvan-color-brand );
+}
+
 /* ---------- Layout helpers ---------- */
 
 .arvan-grid {

@@ -66,6 +66,33 @@ final class WpUsageLogRepository implements UsageLogRepository {
 		];
 	}
 
+	public function historyForCustomer( int $customer_id, ?int $service_id = null, int $limit = 20 ): array {
+		if ( null !== $service_id ) {
+			$rows = $this->db->get_results(
+				$this->db->prepare(
+					'SELECT * FROM %i WHERE customer_id = %d AND service_id = %d ORDER BY period_start DESC LIMIT %d',
+					$this->table(),
+					$customer_id,
+					$service_id,
+					$limit
+				),
+				ARRAY_A
+			);
+		} else {
+			$rows = $this->db->get_results(
+				$this->db->prepare(
+					'SELECT * FROM %i WHERE customer_id = %d ORDER BY period_start DESC LIMIT %d',
+					$this->table(),
+					$customer_id,
+					$limit
+				),
+				ARRAY_A
+			);
+		}
+
+		return is_array( $rows ) ? $rows : [];
+	}
+
 	/**
 	 * @return array<string, mixed>|null
 	 */

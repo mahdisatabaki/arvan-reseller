@@ -62,4 +62,14 @@ interface PaymentRepository {
 	 * @return array<string, mixed>|null
 	 */
 	public function findOwnedByCustomer( int $payment_id, int $customer_id ): ?array;
+
+	/**
+	 * Recent payment attempts for one customer, newest first — the "Payments"
+	 * tab of the Customer Account Dashboard (SCREEN-SPECS.md §12) and the
+	 * recharge screen's "recent payments" list (§10). Same
+	 * always-scoped-to-one-customer shape as `LedgerRepository::historyForCustomer()`.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function historyForCustomer( int $customer_id, int $limit = 20 ): array;
 }

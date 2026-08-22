@@ -112,6 +112,20 @@ final class WpPaymentRepository implements PaymentRepository {
 		return null === $row ? null : $row;
 	}
 
+	public function historyForCustomer( int $customer_id, int $limit = 20 ): array {
+		$rows = $this->db->get_results(
+			$this->db->prepare(
+				'SELECT * FROM %i WHERE customer_id = %d ORDER BY created_at DESC LIMIT %d',
+				$this->table(),
+				$customer_id,
+				$limit
+			),
+			ARRAY_A
+		);
+
+		return is_array( $rows ) ? $rows : [];
+	}
+
 	/**
 	 * @return array<string, mixed>|null
 	 */

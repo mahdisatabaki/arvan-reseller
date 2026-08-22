@@ -126,6 +126,16 @@ interface ServiceRepository {
 	public function findSuspendedByCustomer( int $customer_id, string $reason ): array;
 
 	/**
+	 * Every service belonging to one customer, newest first — the Customer
+	 * Account Dashboard's "Services" section (SCREEN-SPECS.md §12). Scoped to
+	 * one customer by construction, the same "no separate IDOR concern"
+	 * reasoning as `findSuspendedByCustomer()`.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function allForCustomer( int $customer_id ): array;
+
+	/**
 	 * Wallet-suspended services whose grace period has elapsed —
 	 * `suspended_at <= $suspendedBefore` (BILLING.md §16:
 	 * `terminate_after = suspended_at + grace_period`). `$suspendedBefore`

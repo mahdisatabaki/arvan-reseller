@@ -83,8 +83,8 @@ arvan-reseller/
 │   ├── Provisioning/    (ProvisioningService, ResourceSyncService, DeliveryData)
 │   ├── Metering/        (MeteringService, UsagePeriod, UsagePricingAdapter)
 │   ├── Billing/         (BillingService)
-│   ├── Lifecycle/       (ServiceStatus)
-│   ├── Arvan/
+│   ├── Lifecycle/       (ServiceStatus, SuspensionEngine, TerminationEngine, ThresholdPolicy(Resolver))
+│   ├── Arvan/           (CdnClient port, CdnResource, ArvanCdnClient, MockCdnClient)
 │   └── Ports/
 ├── wp/
 │   ├── Plugin.php
@@ -95,9 +95,15 @@ arvan-reseller/
 │   ├── Security/
 │   ├── Cron/
 │   ├── Admin/
-│   ├── Frontend/
+│   ├── Arvan/           (CdnClientResolver — decrypt+construct a CdnClient
+│   │                      from a stored api_keys row; shared by the cron
+│   │                      handler and the CDN order controller)
+│   ├── Customer/
+│   ├── Frontend/        (RouteRegistrar, TemplateRouter, Assets,
+│   │                      CurrentCustomer, Controllers/, templates/ — the
+│   │                      customer-facing screens live here, not in a
+│   │                      root-level templates/ folder)
 │   └── Rest/
-├── templates/
 ├── assets/
 │   ├── css/
 │   └── js/

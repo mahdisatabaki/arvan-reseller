@@ -485,7 +485,7 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
     ```text
     if balance <= 0
       → SuspensionEngine
-      → holdResource
+      → holdResource   [تصمیم اجراشده: بدون remote call — پذیرش زیر را ببینید]
     ```
   - same `api_key_id` that created service
   - customer-scoped
@@ -561,7 +561,7 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
     - وقتی template هنوز نیست (که الان برای همه‌ی route هاست)، عمداً به template پیش‌فرض تم برمی‌گردد — طبق طراحی، نه باگ
     - پیاده‌سازی اولیه توسط ایجنت پس‌زمینه (۱۳ چک synthetic سبز)، باگ بالا فقط در تست زنده‌ی من پیدا شد چون شبیه‌سازی PHP نمی‌تواند `WP_Query` واقعی را اجرا کند
 
-- [ ] **T-7.3** ⛔ CDN Product Page
+- [x] **T-7.3** ⛔ CDN Product Page
   - business branding
   - features
   - configuration/domain input
@@ -570,20 +570,35 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
   - order CTA
   - max two simple layout variants
   - **1.0h**
+  - پذیرش:
+    - `wp/Frontend/templates/cdn.php` — چون `template_include` فقط یک مسیر فایل خام برمی‌گرداند (نه یک شیء کنترلر با متغیرهای محلی از پیش‌ساخته، برخلاف Setup Wizard)، خودِ template نقش composition root را برای این صفحه بازی می‌کند: `global $wpdb`، ساخت مستقیم adapterهای WP لازم، سپس رندر
+    - دو حالت CTA طبق SCREEN-SPECS §9: خروج از سیستم → ورود/ثبت‌نام؛ ورود با موجودی صفر/منفی → افزایش اعتبار؛ ورود با موجودی مثبت → فرم فعال‌سازی واقعی (nonce + `admin-post.php?action=arvan_place_order`)
+    - `wp/Frontend/Controllers/OrderController.php` — اعتبارسنجی دامنه، بررسی موجودی کیف پول قبل از هر تماس با Provider (سفارش با موجودی ≤۰ اصلاً شروع نمی‌شود)، سپس `ProvisioningService::provision()` و ریدایرکت به صفحه‌ی جزئیات سرویس
+    - **گپ معماری واقعی پیدا و رفع شد:** هیچ‌جای پروژه منطق «حل کلید API پیش‌فرض و رمزگشایی آن» را برای یک سفارش جدید (بدون سرویس از پیش موجود) نداشت — `MeteringCronHandler` این را فقط برای سرویس‌های already-provisioned داشت. استخراج شد به `wp/Arvan/CdnClientResolver.php` مشترک بین OrderController و MeteringCronHandler (که خودش هم بازتوان‌بخشی شد تا duplicate logic نداشته باشد)
+    - **گپ دوم پیدا و رفع شد:** `ResellerSettings::getLayout()` (cards/compact) از T-2.4 ذخیره می‌شد اما هیچ مصرف‌کننده‌ای نداشت؛ DESIGN.md §8 صریحاً می‌گوید «a default layout value is still stored... so T-7.3 has something to read from day one» — الان `cdn.php` واقعاً این مقدار را می‌خواند و بین `.arvan-grid--cols-2` (کارت‌ها کنار هم) و تک‌ستونه (فشرده) سوییچ می‌کند؛ هر دو حالت زنده تست شدند
+    - تست زنده روی وردپرس محلی: ثبت‌سفارش با دامنه‌ی نامعتبر → خطای فارسی صحیح؛ موجودی صفر → CTA افزایش اعتبار؛ سفارش واقعی با موجودی مثبت → فراخوان واقعی `ArvanCdnClient` (نه Mock — این پروژه در تولید همیشه از کلید واقعی رمزگشایی‌شده استفاده می‌کند) و مدیریت صحیح شکست Provider بدون کرش
 
-- [ ] **T-7.4** Login/Register + Wallet Recharge
+- [x] **T-7.4** Login/Register + Wallet Recharge
   - plugin UI
   - mock payment states
   - **0.75h**
+  - پذیرش:
+    - `wp/Frontend/Controllers/AuthController.php` (`/arvan/auth` دو فرم) — `wp_signon()`/`wp_insert_user()` مستقیم؛ ساخت مشتری/کیف‌پول را عمداً تکرار نمی‌کند چون `CustomerRegistration` (T-3.3) از قبل به هوک `user_register` وصل است؛ rate-limit به‌سبک `AccessTokenGate` (۵ تلاش/۹۰۰ ثانیه، کلیدهای جدا برای ورود/ثبت‌نام)
+    - `wp/Frontend/Controllers/RechargeController.php` (`/arvan/recharge`، جریان دومرحله‌ای Mock Payment: initiate → confirm/fail) — یک اعتبار موفق (`PaymentService::confirmSucceeded()` غیر-null) بلافاصله `SuspensionEngine::resumeEligibleForCustomer()` را هم صدا می‌زند تا سرویس‌های معلق‌شده به‌خاطر کیف پول به‌طور خودکار از سر گرفته شوند (ADR-012) — دقیقاً همان جفت‌شدگی که `MeteringCronHandler` برای مسیر بدهکاری دارد، این‌بار برای مسیر شارژ
+    - پیاده‌سازی اولیه توسط ایجنت پس‌زمینه (۲۹ چک سبز با کلاس‌های واقعی تولید — نه mock — شامل تست IDOR: مشتری B نمی‌تواند پرداخت مشتری A را تأیید کند)، سیم‌کشی نهایی در `Plugin.php` و تست زنده (ثبت‌نام → فعال‌سازی خودکار → صفحه‌ی CDN با موجودی صفر → شارژ ۳۰,۰۰۰ تومانی → تأیید Mock → موجودی و badge کیف پول در همان لحظه به‌روز شدند) توسط من
 
-- [ ] **T-7.5** Order/Provision Result
+- [x] **T-7.5** Order/Provision Result
   - provisioning/loading
   - success
   - failure
   - Resource ID/status
   - **0.5h**
+  - پذیرش:
+    - یک صفحه‌ی جداگانه‌ی «نتیجه‌ی سفارش» ساخته نشد — عمداً: چون `ProvisioningService::provision()` هم‌زمان (synchronous) است (بدون صف کار async در این MVP)، وضعیت سرویس در لحظه‌ی ریدایرکت از OrderController از قبل `active` یا `provisioning_failed` است؛ `wp/Frontend/templates/service-detail.php` (که همان مسیر ثابت‌شده‌ی T-13 هم هست) این نتیجه را با یک template واحد پوشش می‌دهد به‌جای دو template تقریباً یکسان
+    - حالت‌های رندرشده طبق status: `provisioning` (پیام در حال آماده‌سازی، برای مسیر بازآوری آینده)، `provisioning_failed` (خطای امن + CTA تلاش مجدد)، `active`، `suspended` (دلیل + CTA افزایش اعتبار + توضیح ازسرگیری خودکار)، `terminated` (فقط‌خواندنی)، `*_failed` (پیام امن عمومی)
+    - تست زنده: سفارش واقعی روی دامنه‌ی تستی با کلید API واقعی → شکست واقعی Provider (HTTP 405، چون کلید تستی معتبر نیست) → رکورد محلی `provisioning_failed` با `failed_reason` قابل بازیابی — دقیقاً طبق قرارداد CLAUDE.md «یک تماس provisioning ناموفق نباید بدون یک رکورد محلی قابل‌بازیابی، منبع remote بی‌صاحب بسازد»
 
-- [ ] **T-7.6** Customer Dashboard
+- [x] **T-7.6** Customer Dashboard
   - wallet
   - services
   - outbound traffic usage
@@ -591,8 +606,13 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
   - payments
   - low balance/suspended state
   - **0.75h**
+  - پذیرش:
+    - `wp/Frontend/templates/account.php` — تب‌های سرویس‌ها/تراکنش‌ها/پرداخت‌ها/مصرف به‌صورت سرور-رندرشده با `?tab=` (بدون جاوااسکریپت)؛ بنر هشدار معلق‌شدن (اولویت) یا هشدار موجودی کم (`elseif`، تا دو هشدار هم‌زمان روی هم انباشته نشوند)
+    - **سه گپ معماری واقعی پیدا و رفع شد قبل از این تسک** (توسط من، پیش از دیسپچ ایجنت‌ها): هیچ پورتی «همه‌ی سرویس‌های یک مشتری»، «تاریخچه‌ی پرداخت یک مشتری»، یا «تاریخچه‌ی مصرف یک مشتری» را برنمی‌گرداند — اضافه شد: `ServiceRepository::allForCustomer()`، `PaymentRepository::historyForCustomer()`، `UsageLogRepository::historyForCustomer()` (هرکدام IDOR-safe، اسکوپ‌شده به customer_id)
+    - پیاده‌سازی توسط ایجنت پس‌زمینه، ۳۰ چک سبز مستقل (شامل جداسازی بین‌مشتری با یک مشتری سوم fixture) + بازبینی و تست زنده‌ی من (چهار تب با داده‌ی واقعی و خالی)
+    - باگ جزئی خارج از scope این تسک گزارش شد توسط ایجنت (`WpPaymentRepository::markFailed()` مقدار `note` را حتی وقتی `$reason` نال است بازنویسی می‌کند) — رفع نشد، برای بعد یادداشت شد
 
-**DoD:** Customer journey روی mobile و desktop بدون horizontal overflow کار کند.
+**DoD:** ✅ Customer journey روی مرورگر زنده تأیید شد: ثبت‌نام → صفحه‌ی CDN (موجودی صفر) → شارژ کیف پول (Mock Payment) → ثبت سفارش واقعی CDN → نتیجه/جزئیات سرویس → داشبورد با چهار تب. RTL/فارسی در همه‌ی صفحات. بررسی mobile/desktop overflow هنوز به‌صورت رسمی روی چند viewport انجام نشده — یادداشت برای Block 10 (QA).
 
 ---
 
