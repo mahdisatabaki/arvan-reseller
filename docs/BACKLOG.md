@@ -732,7 +732,7 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
   - **0.25h**
   - پذیرش: `WpApiKeyRepository` فقط ciphertext/fingerprint/last_four ذخیره می‌کند. هر مسیر کد که کلید plaintext در دست دارد (SetupWizard step 2، `SettingsController::handleAddKey/handleTestKey`، `CdnClientResolver`) آن را فقط گذرا مصرف می‌کند، هرگز echo/log/ذخیره نمی‌شود. `CdnProviderException` فقط پیام‌های ثابت امن پرتاب می‌کند. `AccessTokenGate` فقط `password_verify()`. صفر یافته.
 
-- [ ] **T-10.5** Responsive + lifecycle regression
+- [x] **T-10.5** Responsive + lifecycle regression (فقط بخش موبایل مشتری، بدون admin/tablet)
   - real/mobile viewport
   - CDN
   - wallet
@@ -740,14 +740,14 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
   - service
   - admin critical screens
   - **0.4h**
-  - عمداً قربانی شد طبق فهرست قربانی DEMO.md برای رعایت محدودیت زمانی کاربر — یک بازبینی موبایل واقعی هنوز باقی است، قبل از ضبط انجام شود.
+  - پذیرش جزئی: مسیر کامل مشتری (CDN → ثبت‌نام → شارژ Mock → سفارش واقعی → service-detail) روی ویوپورت موبایل واقعی (۳۷۵px) زنده تست شد — بدون overflow افقی، بدون شکستگی چیدمان، topbar/تب‌ها درست می‌شکنند. صفحات ادمین و breakpoint تبلت بررسی نشدند — عمداً برای محدودیت زمانی کنار گذاشته شد.
 
 - [x] **T-10.6** Plugin/security check
   - critical findings only
   - **0.25h**
   - پذیرش: نتیجه‌ی T-10.1 تا T-10.4 — صفر یافته‌ی بحرانی برای اصلاح وجود داشت.
 
-**DoD:** ✅ هیچ vulnerability شناخته‌شده P0 و هیچ customer data leak باقی نماند — چهار ممیزی امنیتی (nonce/capability, IDOR, input/output/SQL, secrets) با دو ایجنت موازی انجام شد، هرکدام صفر یافته گزارش کرد. T-10.5 (responsive QA) عمداً برای محدودیت زمانی قربانی شد.
+**DoD:** ✅ هیچ vulnerability شناخته‌شده P0 و هیچ customer data leak باقی نماند — چهار ممیزی امنیتی (nonce/capability, IDOR, input/output/SQL, secrets) با دو ایجنت موازی انجام شد، هرکدام صفر یافته گزارش کرد. T-10.5 فقط برای مسیر بحرانی مشتری روی موبایل واقعی انجام شد؛ admin/tablet باقی مانده.
 
 ---
 
@@ -763,13 +763,14 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
   - payment history
   - **0.4h**
 
-- [ ] **T-11.2** README
+- [x] **T-11.2** README
   - install
   - architecture
   - security
   - demo mode
   - limitations
   - **0.3h**
+  - پذیرش: `arvan-reseller/README.md` نوشته شد (انگلیسی، مطابق زبان بقیه‌ی docs/؛ فقط UI خودِ پلاگین فارسی است). هر ۷ بخش پوشش داده شد. صداقت محور: بخش «Demo mode» به‌صراحت Suspend را local-status-only معرفی می‌کند (مهم‌ترین افشای پروژه)، Settlement را «ساخته‌نشده» می‌گوید نه چیزی مبهم، و نتیجه‌ی ممیزی امنیتی را بدون اغراق («nothing... was wrong when checked»، نه یک تضمین قطعی) بیان می‌کند.
 
 - [ ] **T-11.3** Demo rehearsal
   - exact balances
