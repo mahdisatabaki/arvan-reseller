@@ -177,3 +177,29 @@ If email delivery is unavailable locally:
 - show notification event/status in plugin and explain local SMTP is not configured.
 
 Never edit database manually during recorded primary scenario.
+
+## 6. Current Environment Cheat-Sheet (as of 2026-08-22, for T-11.4/T-11.5 recording)
+
+This section reflects the actual state of the local `arvan-test.test` site right now, so recording can start without re-discovering values. Re-run `php bin/seed-demo-data.php` any time to restore this exact state if the site changes.
+
+**Reseller config already set:** markup 15%, unit price 1,500 Toman/GB, business name "آروان تست ریسلر". (§3's script assumes 20%/Base 100/Markup 20/Total 120 — either keep this site's real 15% and adjust the spoken numbers, or change markup to 20% in Settings → Pricing before recording to match the script's clean example exactly. Recommended: change it to 20% right before recording, it's a 10-second Settings save.)
+
+**Seeded customers (from `bin/seed-demo-data.php`), both already active with history:**
+- "مشتری اول (شرکت آلفا)" — 84,475 Toman wallet, service `shop-alpha.example.com` (active), 2 usage periods billed.
+- "مشتری دوم (شرکت بتا)" — 8,100 Toman wallet, service `blog-beta.example.com` (active), 1 usage period billed.
+
+Use these two to show the Admin Customers/Services/Finance screens already populated (§7 of the script) without building history live. For §3–§6 (registration → recharge → order → billing), register a **third, fresh** customer live — do not reuse the seeded two, so the "Wallet starts at zero" moment in §3 is real.
+
+**One settlement already exists:** period 2026-08-20 11:35–13:35, base 19,500 / markup 2,925 / total 22,425 Toman, status "transmitted" — visible now in Finance → Settlements, useful for showing that screen is not empty (Admin section, §7).
+
+**Known constraint for the live-order segment (§4):** the configured ArvanCloud API key in this environment has never successfully created a real resource (documented since the project's first API spike, T-1.1) — a live order will reliably show the graceful-failure path (`provisioning_failed`, safe error message, retry option), not a success. Before recording, decide one of:
+- Record the failure path as-is and narrate it honestly (it demonstrates the invariant "a failed provisioning call leaves a recoverable local record, never an orphaned remote resource" — a real, defensible thing to show), **or**
+- Swap in a real working ArvanCloud sandbox key if you have one, **or**
+- Temporarily wire `MockCdnClient` in for a clean success + a controllable billing/suspend/resume cycle (§6's "crosses Low Balance → negative → Suspend" sequence needs an actually-active, actually-billable service to demonstrate live — this is the one segment that cannot be rehearsed against the real API in this environment).
+
+**Pre-recording checklist specific to this environment:**
+- [ ] Settings → کلیدهای API: confirm the default key's status is **فعال** (active) — it was found disabled once already during rehearsal (T-11.3) and silently changes the order-flow error message if left off.
+- [ ] Decide markup 15% vs 20% (see above) before recording §5.
+- [ ] Decide real-key vs Mock for §4/§6 (see above).
+- [ ] Local admin login is `admin` / `ArvanDemo!2026` — change this before publishing the repository, since it's recorded in this project's chat history.
+- [ ] If you want a fully from-scratch recording (wizard included), the Setup Wizard steps are already completed on this site — either walk through Settings instead of the Wizard, or deactivate/reactivate the plugin to re-trigger the wizard redirect (this does not drop the `arvan_*` tables, see `uninstall.php`).
