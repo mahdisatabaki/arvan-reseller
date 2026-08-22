@@ -535,20 +535,31 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
 
 فقط CDN. هیچ صفحه Cloud Server/Object Storage ساخته نمی‌شود.
 
-- [ ] **T-7.1** UI foundation
+- [x] **T-7.1** UI foundation
   - Sorkhab-inspired tokens
   - RTL
   - CSS namespace
   - mobile-first
   - accessibility basics
   - **0.75h**
+  - پذیرش:
+    - `assets/css/foundation.css` — توکن‌ها با بازدید زنده‌ی https://sorkhab.arvancloud.ir استخراج شدند (نه حدس)، از طریق کامپوننت‌های واقعی رندرشده (کلاس‌های `v10-7-2-Ar*`) با خواندن `getComputedStyle()`: رنگ برند `#009595`، پس‌زمینه‌های حالت (info/success/warning/danger)، فونت `YekanBakh` با fallback به `Vazirmatn`/`Tahoma` (فونت خودِ Arvan bundle نشده، مجوز توزیع تأیید نشده)، مقیاس radius/padding دکمه (۴۰px/۱۲px بزرگ، ۳۲px/۸px کوچک)
+    - namespace کامل زیر `.arvan-app`/`.arvan-*` — هرگز روی محتوای تم نشت نمی‌کند
+    - RTL-first، بدون هیچ حالت رنگ-تنها برای وضعیت (طبق DESIGN.md §۱۷)، بدون overflow افقی موبایل
+    - **وابسته به runtime نیست** — طبق DESIGN.md §۲، فقط الهام بصری، نه import از پکیج Sorkhab
+    - هنوز هیچ template ای این CSS را مصرف نمی‌کند (T-7.3 به بعد) — طبیعی، چون هنوز صفحه‌ای نیست
 
-- [ ] **T-7.2** Plugin-owned routes/templates
+- [x] **T-7.2** Plugin-owned routes/templates
   - `/arvan/cdn`
   - `/arvan/account`
   - service detail
   - auth/recharge
   - **0.25h**
+  - پذیرش:
+    - `wp/Frontend/RouteRegistrar.php` (rewrite rules + query vars) + `TemplateRouter.php` (`template_include`) + `wp/Frontend/Assets.php` (enqueue فقط روی صفحات match‌شده)
+    - **باگ واقعی پیدا و رفع شد فقط با تست زنده:** یک query var سفارشی به‌تنهایی جلوی `WP_Query` را از پیش‌فرض گرفتن `is_home=true` نمی‌گیرد. بازدید واقعی از `/arvan/cdn` این را ثابت کرد (`body class="home blog"` — صفحه‌ی اصلی بلاگ رندر می‌شد، نه یک صفحه‌ی خالی/۴۰۴). رفع شد با هوک `parse_query` که `is_home`/`is_404` را صریحاً false می‌کند وقتی `arvan_route` ست است. بعد از رفع، دوباره زنده تست شد — هم `/arvan/cdn` هم `/arvan/account/services/42` بدون کلاس `home` رندر شدند، و یک مسیر واقعاً نامعتبر همچنان ۴۰۴ درست می‌دهد
+    - وقتی template هنوز نیست (که الان برای همه‌ی route هاست)، عمداً به template پیش‌فرض تم برمی‌گردد — طبق طراحی، نه باگ
+    - پیاده‌سازی اولیه توسط ایجنت پس‌زمینه (۱۳ چک synthetic سبز)، باگ بالا فقط در تست زنده‌ی من پیدا شد چون شبیه‌سازی PHP نمی‌تواند `WP_Query` واقعی را اجرا کند
 
 - [ ] **T-7.3** ⛔ CDN Product Page
   - business branding

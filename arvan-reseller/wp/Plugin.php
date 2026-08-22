@@ -25,6 +25,9 @@ use ArvanReseller\Wp\Admin\SetupWizard;
 use ArvanReseller\Wp\Cron\MeteringCronHandler;
 use ArvanReseller\Wp\Cron\Scheduler;
 use ArvanReseller\Wp\Customer\CustomerRegistration;
+use ArvanReseller\Wp\Frontend\Assets;
+use ArvanReseller\Wp\Frontend\RouteRegistrar;
+use ArvanReseller\Wp\Frontend\TemplateRouter;
 use ArvanReseller\Wp\Installation\Installer;
 use ArvanReseller\Wp\Persistence\WpApiKeyRepository;
 use ArvanReseller\Wp\Persistence\WpAuditLogger;
@@ -71,6 +74,7 @@ final class Plugin {
 
 		$this->bootCustomer();
 		$this->bootCron();
+		$this->bootFrontend();
 
 		if ( is_admin() ) {
 			$this->bootAdmin();
@@ -124,6 +128,19 @@ final class Plugin {
 		);
 
 		$handler->register();
+	}
+
+	/**
+	 * Plugin-owned public routes (`/arvan/cdn`, `/arvan/account`, etc.) must
+	 * resolve on the public-facing site, not just wp-admin, so this is wired
+	 * unconditionally like `bootCustomer()`/`bootCron()`, not folded into
+	 * `bootAdmin()`. Neither collaborator needs a repository/port — they are
+	 * pure WordPress rewrite/query-var/template_include plumbing.
+	 */
+	private function bootFrontend(): void {
+		( new RouteRegistrar() )->register();
+		( new TemplateRouter() )->register();
+		( new Assets() )->register();
 	}
 
 	/**

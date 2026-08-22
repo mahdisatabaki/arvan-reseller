@@ -18,6 +18,7 @@
 بلوک ۴  ██████████ 100%   تمام (۴/۴ تسک)
 بلوک ۵  ██████████ 100%   تمام (۴/۴ تسک)
 بلوک ۶  ██████████ 100%   تمام (۵/۵ تسک)
+بلوک ۷  ███░░░░░░░  33%   T-7.1, T-7.2 تمام — بعدی: T-7.3 CDN Product Page
 بلوک ۷  ░░░░░░░░░░   0%
 بلوک ۸  ░░░░░░░░░░   0%
 بلوک ۹  ░░░░░░░░░░   0%
@@ -25,7 +26,7 @@
 بلوک ۱۱ ░░░░░░░░░░   0%
 ```
 
-**قدم بعدی: بلوک ۷ — Customer Frontend**، اولین بلوک UI مشتری‌محور (تا الان همه‌چیز backend یا فقط Setup Wizard ادمین بود).
+**قدم بعدی: T-7.3 — CDN Product Page** (اولین template واقعی که از `foundation.css`/routing استفاده می‌کند).
 
 **تصمیم محصولی مهم بلوک ۶:** چون هیچ API واقعی hold/unhold روی آروان تأیید نشده (باز از T-1.1)، Suspend/Resume **فقط وضعیت محلی**اند — سرویس CDN واقعی روی آروان همچنان کار می‌کند. Terminate اما واقعی است (`deleteResource()` تأیید شده). این محدودیت شناخته‌شده است، نه باگ؛ در DEMO.md صریحاً ثبت شد.
 
@@ -52,7 +53,7 @@
 | ۴ | CDN Provisioning + Mapping | ✅ تمام | 4/4 | `src/Lifecycle/ServiceStatus.php`, `src/Ports/OrderRepository.php`, `wp/Persistence/WpOrderRepository.php`, `wp/Persistence/WpServiceRepository.php`, `src/Provisioning/ProvisioningService.php`, `src/Provisioning/ResourceSyncService.php`, `src/Provisioning/DeliveryData.php` |
 | ۵ | Metering + Billing | ✅ تمام | 4/4 | `src/Metering/MeteringService.php`, `src/Metering/UsagePeriod.php`, `src/Metering/UsagePricingAdapter.php`, `src/Ports/UsageLogRepository.php`, `wp/Persistence/WpUsageLogRepository.php`, `src/Billing/BillingService.php`, `wp/Cron/MeteringCronHandler.php`, `wp/Support/SystemClock.php` |
 | ۶ | Limits + Lifecycle | ✅ تمام | 5/5 | `src/Lifecycle/ThresholdPolicy.php`, `ThresholdPolicyResolver.php`, `SuspensionEngine.php`, `TerminationEngine.php`, `src/Ports/NotificationRepository.php`, `wp/Persistence/WpNotificationRepository.php`, `wp/Security/WordPressMailer.php`, `src/Wallet/LowBalanceNotifier.php`, `wp/Cron/MeteringCronHandler.php` (به‌روزشده) |
-| ۷ | Customer Frontend | ⏳ شروع‌نشده | 0/6 | — |
+| ۷ | Customer Frontend | 🔶 در حال انجام | 2/6 | `assets/css/foundation.css`, `wp/Frontend/RouteRegistrar.php`, `TemplateRouter.php`, `Assets.php` |
 | ۸ | Reseller Admin | ⏳ شروع‌نشده | 0/5 | — |
 | ۹ | Settlement + System Status | ⏳ شروع‌نشده | 0/2 | — |
 | ۱۰ | Security + Responsive + QA | ⏳ شروع‌نشده | 0/6 | — |
@@ -228,6 +229,17 @@
 ### به‌روزرسانی DEMO.md
 
 طبق بدهی بالا: یک خط صریح به بخش «چه چیزی واقعی است / چه چیزی شبیه‌سازی‌شده» اضافه شد — Suspend فقط وضعیت محلی است، سرویس واقعی روی آروان همچنان کار می‌کند، تا در ضبط دمو اشتباهاً به‌عنوان قطع واقعی ترافیک نمایش داده نشود.
+
+---
+
+### بلوک ۷ — Customer Frontend (شروع)
+
+اولین بلوک UI مشتری‌محور — تا اینجا همه‌چیز یا backend بود یا فقط Setup Wizard ادمین.
+
+- **قبل از T-7.1:** با مرورگر واقعی از https://sorkhab.arvancloud.ir بازدید شد تا مشخص شود چقدر می‌توان از آن token واقعی استخراج کرد. نتیجه: سایت کامپوننت‌های واقعی Arvan را زنده رندر می‌کند (کلاس‌های `v10-7-2-ArButton` و مشابه)، پس با `getComputedStyle()` مقادیر واقعی (نه حدسی) قابل خواندن بودند: رنگ برند `#009595`، پس‌زمینه‌های حالت (info/success/warning/danger)، فونت `YekanBakh`، مقیاس دقیق padding/radius دکمه‌ها. این مقادیر پایه‌ی `foundation.css` شدند.
+- **T-7.1 — UI foundation** — `assets/css/foundation.css`، namespace کامل زیر `.arvan-app`، بدون وابستگی runtime به Sorkhab (طبق DESIGN.md §۲). چون هنوز هیچ template ای وجود ندارد که این CSS را مصرف کند، تست بصری زنده معنا نداشت — طبیعی برای این مرحله، نه یک نقص.
+- **T-7.2 — Plugin-owned routes** — `RouteRegistrar`+`TemplateRouter`+`Assets` (پس‌زمینه، ۱۳ چک synthetic). **باگ واقعی که فقط تست زنده پیدا کرد:** ثبت query var سفارشی به‌تنهایی جلوی پیش‌فرض‌گرفتن `is_home=true` توسط `WP_Query` را نمی‌گیرد — بازدید واقعی از `/arvan/cdn` صفحه‌ی اصلی بلاگ را نشان داد، نه یک صفحه‌ی خالی. رفع شد با هوک `parse_query`. تأیید نهایی هم زنده انجام شد: هم دو route جدید بدون کلاس `home`، هم یک مسیر واقعاً نامعتبر همچنان ۴۰۴ درست.
+- **یادداشت محیطی:** برای تست، ساختار پیوند یکتای سایت تست محلی از «ساده» (که rewrite rules اصلاً کار نمی‌کند) به «نام نوشته» تغییر کرد — یک پیش‌نیاز واقعی برای هر سایت وردپرسی که از این routing استفاده کند، نه فقط محیط تست.
 
 ## تصمیم‌های باز (باید در بلوک‌های بعدی حل شوند)
 

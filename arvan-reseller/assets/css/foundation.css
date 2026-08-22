@@ -1,0 +1,337 @@
+/*
+ * Arvan Reseller — UI foundation (BACKLOG T-7.1).
+ *
+ * Sorkhab-inspired tokens: DESIGN.md §2 requires using ArvanCloud's Sorkhab
+ * design system as visual/component reference "where practical" while
+ * explicitly forbidding a runtime dependency on a Sorkhab package. These
+ * custom properties are this plugin's OWN values, informed by Sorkhab's
+ * published documentation and live component previews at
+ * https://sorkhab.arvancloud.ir (semantic 3-tier naming — background/
+ * foreground/stroke, brand teal, alert states, YekanBakh-first font stack,
+ * 8px-based spacing/radius scale) — not copied from a bundled asset, since
+ * none is available to depend on.
+ *
+ * Every selector is scoped under `.arvan-` (the same namespace convention
+ * already used by the Setup Wizard's own inline styles, T-2.4/T-2.4-fix) so
+ * this file can never leak into theme content or be overridden by it
+ * (DESIGN.md §3E: "Theme styles must not break critical layouts").
+ */
+
+:root {
+	/* Brand */
+	--arvan-color-brand: #009595;
+	--arvan-color-brand-hover: #007a7a;
+
+	/* Neutral scale (light) */
+	--arvan-color-bg: #ffffff;
+	--arvan-color-bg-soft: #f7f8f9;
+	--arvan-color-bg-elevated: #ffffff;
+	--arvan-color-fg: #1f2328;
+	--arvan-color-fg-muted: #57606a;
+	--arvan-color-fg-subtle: #8b949e;
+	--arvan-color-stroke: #d8dce1;
+	--arvan-color-stroke-strong: #b6bcc4;
+
+	/* Semantic states — background + matching readable foreground */
+	--arvan-color-info-bg: #e0f2fb;
+	--arvan-color-info-fg: #0b4f6c;
+	--arvan-color-success-bg: #e3f6e9;
+	--arvan-color-success-fg: #1e6b3c;
+	--arvan-color-warning-bg: #fff7e0;
+	--arvan-color-warning-fg: #8a6100;
+	--arvan-color-danger-bg: #fae4e4;
+	--arvan-color-danger-fg: #a12626;
+
+	/* Typography — YekanBakh is ArvanCloud's Persian brand face; this
+	   plugin does not bundle it (no confirmed redistribution license), so
+	   it only applies for visitors who already have it installed, and every
+	   stack falls through to a real open-source Persian face before Arial. */
+	--arvan-font-family: YekanBakh, Vazirmatn, Tahoma, Arial, sans-serif;
+	--arvan-font-size-base: 16px;
+	--arvan-font-size-sm: 14px;
+	--arvan-font-size-lg: 20px;
+	--arvan-font-size-h1: 28px;
+	--arvan-line-height-base: 1.6;
+	--arvan-line-height-heading: 1.4;
+
+	/* Spacing scale — 8px base, matching Button/Alert's own padding values */
+	--arvan-space-1: 4px;
+	--arvan-space-2: 8px;
+	--arvan-space-3: 16px;
+	--arvan-space-4: 24px;
+	--arvan-space-5: 32px;
+
+	/* Radius scale */
+	--arvan-radius-sm: 8px;
+	--arvan-radius-md: 12px;
+	--arvan-radius-full: 999px;
+
+	/* Focus ring — WCAG-visible, never color-only (DESIGN.md §17) */
+	--arvan-focus-ring: 0 0 0 3px rgba(0, 149, 149, 0.35);
+}
+
+@media ( prefers-color-scheme: dark ) {
+	:root {
+		--arvan-color-bg: #16191d;
+		--arvan-color-bg-soft: #1e2227;
+		--arvan-color-bg-elevated: #22262c;
+		--arvan-color-fg: #e6e9ec;
+		--arvan-color-fg-muted: #a8b0b8;
+		--arvan-color-fg-subtle: #767f88;
+		--arvan-color-stroke: #2f343b;
+		--arvan-color-stroke-strong: #3c424a;
+	}
+}
+
+/* ---------- Base / reset, RTL-first (DESIGN.md §4, §5) ---------- */
+
+.arvan-app {
+	direction: rtl;
+	text-align: right;
+	font-family: var( --arvan-font-family );
+	font-size: var( --arvan-font-size-base );
+	line-height: var( --arvan-line-height-base );
+	color: var( --arvan-color-fg );
+	background: var( --arvan-color-bg );
+	box-sizing: border-box;
+}
+
+.arvan-app *,
+.arvan-app *::before,
+.arvan-app *::after {
+	box-sizing: inherit;
+}
+
+.arvan-app h1,
+.arvan-app h2,
+.arvan-app h3 {
+	line-height: var( --arvan-line-height-heading );
+	font-weight: 600;
+	margin: 0 0 var( --arvan-space-3 );
+}
+
+.arvan-app h1 {
+	font-size: var( --arvan-font-size-h1 );
+}
+
+/* No horizontal overflow on mobile — DESIGN.md §5's one hard rule. */
+.arvan-app,
+.arvan-app img,
+.arvan-app table {
+	max-width: 100%;
+}
+
+.arvan-app table {
+	overflow-x: auto;
+	display: block;
+}
+
+/* Visible keyboard focus everywhere — never color-only status (§17). */
+.arvan-app :focus-visible {
+	outline: none;
+	box-shadow: var( --arvan-focus-ring );
+	border-radius: var( --arvan-radius-sm );
+}
+
+/* ---------- Button ---------- */
+
+.arvan-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: var( --arvan-space-2 );
+	height: 40px;
+	padding: 10px var( --arvan-space-3 );
+	border-radius: var( --arvan-radius-md );
+	border: 1px solid transparent;
+	font-family: inherit;
+	font-size: var( --arvan-font-size-base );
+	font-weight: 500;
+	cursor: pointer;
+	transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.arvan-btn--sm {
+	height: 32px;
+	padding: 6px var( --arvan-space-3 );
+	border-radius: var( --arvan-radius-sm );
+	font-size: var( --arvan-font-size-sm );
+}
+
+.arvan-btn--primary {
+	background: var( --arvan-color-brand );
+	color: #ffffff;
+}
+
+.arvan-btn--primary:hover {
+	background: var( --arvan-color-brand-hover );
+}
+
+.arvan-btn--secondary {
+	background: transparent;
+	border-color: var( --arvan-color-stroke-strong );
+	color: var( --arvan-color-fg );
+}
+
+.arvan-btn--ghost {
+	background: transparent;
+	color: var( --arvan-color-fg-muted );
+}
+
+.arvan-btn--danger {
+	background: var( --arvan-color-danger-fg );
+	color: #ffffff;
+}
+
+.arvan-btn:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+/* ---------- Card ---------- */
+
+.arvan-card {
+	background: var( --arvan-color-bg-elevated );
+	border: 1px solid var( --arvan-color-stroke );
+	border-radius: var( --arvan-radius-md );
+	padding: var( --arvan-space-4 );
+}
+
+/* ---------- Alert ---------- */
+
+.arvan-alert {
+	display: flex;
+	gap: var( --arvan-space-2 );
+	border-radius: var( --arvan-radius-sm );
+	padding: var( --arvan-space-3 ) var( --arvan-space-4 );
+	font-size: var( --arvan-font-size-sm );
+}
+
+.arvan-alert--info {
+	background: var( --arvan-color-info-bg );
+	color: var( --arvan-color-info-fg );
+}
+
+.arvan-alert--success {
+	background: var( --arvan-color-success-bg );
+	color: var( --arvan-color-success-fg );
+}
+
+.arvan-alert--warning {
+	background: var( --arvan-color-warning-bg );
+	color: var( --arvan-color-warning-fg );
+}
+
+.arvan-alert--danger {
+	background: var( --arvan-color-danger-bg );
+	color: var( --arvan-color-danger-fg );
+}
+
+/* ---------- Badge/Status (text + shape, never color-only — §17/§3C) ---------- */
+
+.arvan-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: var( --arvan-space-1 );
+	border-radius: var( --arvan-radius-full );
+	padding: 2px 10px;
+	font-size: var( --arvan-font-size-sm );
+	font-weight: 500;
+}
+
+.arvan-badge--active {
+	background: var( --arvan-color-success-bg );
+	color: var( --arvan-color-success-fg );
+}
+
+.arvan-badge--suspended {
+	background: var( --arvan-color-warning-bg );
+	color: var( --arvan-color-warning-fg );
+}
+
+.arvan-badge--failed,
+.arvan-badge--terminated {
+	background: var( --arvan-color-danger-bg );
+	color: var( --arvan-color-danger-fg );
+}
+
+.arvan-badge--provisioning {
+	background: var( --arvan-color-info-bg );
+	color: var( --arvan-color-info-fg );
+}
+
+/* ---------- Field / Input ---------- */
+
+.arvan-field {
+	display: flex;
+	flex-direction: column;
+	gap: var( --arvan-space-1 );
+	margin-bottom: var( --arvan-space-3 );
+}
+
+.arvan-field__label {
+	font-size: var( --arvan-font-size-sm );
+	font-weight: 500;
+	color: var( --arvan-color-fg );
+}
+
+.arvan-field__help {
+	font-size: var( --arvan-font-size-sm );
+	color: var( --arvan-color-fg-muted );
+}
+
+.arvan-field__error {
+	font-size: var( --arvan-font-size-sm );
+	color: var( --arvan-color-danger-fg );
+}
+
+.arvan-input {
+	height: 40px;
+	padding: 0 var( --arvan-space-3 );
+	border: 1px solid var( --arvan-color-stroke );
+	border-radius: var( --arvan-radius-sm );
+	background: var( --arvan-color-bg );
+	color: var( --arvan-color-fg );
+	font-family: inherit;
+	font-size: var( --arvan-font-size-base );
+	direction: rtl;
+	text-align: right;
+}
+
+.arvan-input:focus-visible {
+	border-color: var( --arvan-color-brand );
+}
+
+/* ---------- Empty state ---------- */
+
+.arvan-empty {
+	text-align: center;
+	padding: var( --arvan-space-5 );
+	color: var( --arvan-color-fg-muted );
+}
+
+/* ---------- Layout helpers ---------- */
+
+.arvan-grid {
+	display: grid;
+	gap: var( --arvan-space-4 );
+	grid-template-columns: 1fr;
+}
+
+@media ( min-width: 768px ) {
+	.arvan-grid--cols-2 {
+		grid-template-columns: repeat( 2, 1fr );
+	}
+
+	.arvan-grid--cols-3 {
+		grid-template-columns: repeat( 3, 1fr );
+	}
+}
+
+@media ( min-width: 1024px ) {
+	.arvan-container {
+		max-width: 1040px;
+		margin-inline: auto;
+		padding-inline: var( --arvan-space-4 );
+	}
+}
