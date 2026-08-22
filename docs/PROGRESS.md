@@ -21,7 +21,7 @@
 بلوک ۷  ██████████ 100%   تمام (۶/۶ تسک) — DoD تأیید شد با جریان کامل زنده
 بلوک ۸  ██████████ 100%   تمام (۵/۵ تسک) — DoD تأیید شد با ورود ادمین واقعی + نوشتن واقعی روی هر ۵ صفحه
 بلوک ۹  ██████████ 100%   تمام (۲/۲ تسک) — DoD تأیید شد: تسویه‌ی ۲۲,۴۲۵ تومانی برابر مجموع دفتر کل
-بلوک ۱۰ ████████░░  67%   T-10.1/۱۰.۲/۱۰.۳/۱۰.۴/۱۰.۶ تمام (صفر یافته)؛ T-10.5 فقط مسیر مشتری روی موبایل
+بلوک ۱۰ ██████████ 100%   تمام (۶/۶ تسک) — صفر یافته‌ی امنیتی؛ responsive روی مسیر مشتری + هر ۵ صفحه‌ی ادمین
 بلوک ۱۱ ████████░░  67%   T-11.1/۱۱.۲/۱۱.۳ تمام؛ T-11.4/۱۱.۵/۱۱.۶ اقدام انسانی‌اند (ضبط/تحویل)
 ```
 
@@ -59,8 +59,8 @@
 | ۷ | Customer Frontend | ✅ تمام | 6/6 | `assets/css/foundation.css`, `wp/Frontend/RouteRegistrar.php`, `TemplateRouter.php`, `Assets.php`, `CurrentCustomer.php`, `Controllers/OrderController.php`, `AuthController.php`, `RechargeController.php`, `templates/cdn.php`, `auth.php`, `recharge.php`, `service-detail.php`, `account.php`, `partials/topbar.php`, `wp/Arvan/CdnClientResolver.php` |
 | ۸ | Reseller Admin | ✅ تمام | 5/5 | `wp/Admin/AdminMenu.php`, `Controllers/DashboardController.php`, `CustomersController.php`, `ServicesController.php`, `FinanceController.php`, `SettingsController.php`, `templates/dashboard.php`, `customers.php`, `services.php`, `finance.php`, `settings.php`, `partials/admin-header.php`, `src/Provisioning/ProvisioningService.php` (`retry()`), `src/Ports/SettlementRepository.php`, `wp/Persistence/WpSettlementRepository.php` |
 | ۹ | Settlement + System Status | ✅ تمام | 2/2 | `src/Settlement/SettlementService.php`, `wp/Cron/SettlementCronHandler.php`, `src/Ports/SettlementRepository.php` (`create()`), `wp/Persistence/WpSettlementRepository.php` (`create()`), `UsageLogRepository::unsettled()`/`markSettled()`, `MeteringCronHandler::LAST_RUN_OPTION`, Dashboard "وضعیت سیستم" section |
-| ۱۰ | Security + Responsive + QA | ⏳ شروع‌نشده | 0/6 | — |
-| ۱۱ | Demo + Delivery | ⏳ شروع‌نشده | 0/6 | — |
+| ۱۰ | Security + Responsive + QA | ✅ تمام | 6/6 | ممیزی صفر-یافته (agent-based)، بازبینی responsive موبایل/تبلت روی مسیر مشتری + هر ۵ صفحه‌ی ادمین |
+| ۱۱ | Demo + Delivery | 🔶 تا حد ممکن تمام | 3/6 | `bin/seed-demo-data.php`, `README.md` — T-11.4/۱۱.۵/۱۱.۶ (ضبط/تحویل) اقدام انسانی‌اند |
 
 ---
 
@@ -301,6 +301,10 @@
 **T-9.2 — System Status:** به‌جای صفحه‌ی ادمین ششم، یک بخش به همان Dashboard اضافه شد — چون DESIGN.md §۶ دقیقاً ۵ صفحه برای Reseller Admin تعریف کرده و بلوک ۸ خودش صریحاً «از ۱۲ صفحه مستقل اجتناب شود» را به‌عنوان قانون اول گذاشته بود؛ ساختن صفحه‌ی ششم دقیقاً همان اشتباهی بود که آن قانون می‌خواست جلویش را بگیرد. نکته‌ی جالب: `Scheduler::isHealthy()`/`missingJobs()`/`nextRuns()` از همان T-0.6 با کامنت صریح «for the System Status screen» ساخته شده بودند ولی تا امروز هیچ UI ای آن‌ها را نمی‌خواند — این بخش اولین مصرف‌کننده‌ی واقعی آن متدهاست. سه بخش از هفت بولت BACKLOG عمداً ساخته نشد: Resource Sync UI (در فهرست قربانی DEMO.md)، Demo Mode (هیچ‌جای هیچ سندی این مفهوم تعریف نشده — طبق همان قانون «هیچ endpoint/فیلد API را حدس نزن»، حدس‌زدن یک ویژگی محصولی تعریف‌نشده هم قبول نشد)، و یک ویجت اختصاصی خطاهای اخیر (audit-log UI هم قربانی‌شده است).
 
 **تأیید نهایی زنده:** روی داده‌ی seed شده‌ی بلوک ۱۱ (۳ ردیف مصرف واقعی، دو مشتری) — یک اجرای تسویه، ۱۹,۵۰۰ پایه + ۲,۹۲۵ سود = ۲۲,۴۲۵ تومان مجموع مشتری، دقیقاً برابر مجموع همان بدهی‌ها در دفتر کل (تأیید BILLING.md §۱۸: «settlement totals reconcile to usage rows»)؛ اجرای دوباره صفر ردیف پیدا کرد. تب Finance → Settlements حالا این ردیف واقعی را نشان می‌دهد (قبلاً همیشه خالی بود، از بلوک ۸). هر دو دکمه‌ی جدید Dashboard («اجرای فوری تسویه‌حساب» و رگرسیون روی «اجرای فوری چرخه‌ی صورتحساب») از طریق UI واقعی کلیک شدند، nonce/capability عبور کردند، و مقادیر «آخرین اجرا»/«آخرین تسویه» بلافاصله به‌روزرسانی شدند.
+
+### تکمیل T-10.5 — بازبینی responsive صفحات ادمین
+
+بعد از بستن بلوک ۹، به عقب برگشتم و بخش باقی‌مانده‌ی T-10.5 (که قبلاً فقط برای مسیر مشتری انجام شده بود) را هم تمام کردم: هر ۵ صفحه‌ی ادمین روی تبلت (۷۶۸px) و موبایل (۳۷۵px) بازبینی شدند. هیچ مشکلی پیدا نشد — جدول‌های پهن (سرویس‌ها با ۹ ستون، دفتر کل) به‌درستی از `overflow-x:auto` داخلی خودشان (که همان اول در `admin-header.php` گذاشته شده بود) استفاده می‌کنند، صفحه هرگز در سطح کلی به‌صورت افقی اسکرول نمی‌شود. بلوک ۱۰ حالا کامل ۶/۶.
 
 ## تصمیم‌های باز (باید در بلوک‌های بعدی حل شوند)
 

@@ -734,7 +734,7 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
   - **0.25h**
   - پذیرش: `WpApiKeyRepository` فقط ciphertext/fingerprint/last_four ذخیره می‌کند. هر مسیر کد که کلید plaintext در دست دارد (SetupWizard step 2، `SettingsController::handleAddKey/handleTestKey`، `CdnClientResolver`) آن را فقط گذرا مصرف می‌کند، هرگز echo/log/ذخیره نمی‌شود. `CdnProviderException` فقط پیام‌های ثابت امن پرتاب می‌کند. `AccessTokenGate` فقط `password_verify()`. صفر یافته.
 
-- [x] **T-10.5** Responsive + lifecycle regression (فقط بخش موبایل مشتری، بدون admin/tablet)
+- [x] **T-10.5** Responsive + lifecycle regression
   - real/mobile viewport
   - CDN
   - wallet
@@ -742,14 +742,14 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
   - service
   - admin critical screens
   - **0.4h**
-  - پذیرش جزئی: مسیر کامل مشتری (CDN → ثبت‌نام → شارژ Mock → سفارش واقعی → service-detail) روی ویوپورت موبایل واقعی (۳۷۵px) زنده تست شد — بدون overflow افقی، بدون شکستگی چیدمان، topbar/تب‌ها درست می‌شکنند. صفحات ادمین و breakpoint تبلت بررسی نشدند — عمداً برای محدودیت زمانی کنار گذاشته شد.
+  - پذیرش: مسیر کامل مشتری (CDN → ثبت‌نام → شارژ Mock → سفارش واقعی → service-detail) روی موبایل واقعی (۳۷۵px) زنده تست شد. جداگانه، هر ۵ صفحه‌ی ادمین (Dashboard با بخش تازه‌ی «وضعیت سیستم»، Customers، Services، Finance، Settings) روی تبلت (۷۶۸px) و موبایل (۳۷۵px) بررسی شدند — جدول‌های پهن (سرویس‌ها، دفتر کل) با inner scroll خودشان (`overflow-x:auto`) درست کار می‌کنند، هیچ overflow افقی در سطح صفحه دیده نشد، طبق DESIGN.md §۵ («intentional inner scroll only when information cannot be reduced»).
 
 - [x] **T-10.6** Plugin/security check
   - critical findings only
   - **0.25h**
   - پذیرش: نتیجه‌ی T-10.1 تا T-10.4 — صفر یافته‌ی بحرانی برای اصلاح وجود داشت.
 
-**DoD:** ✅ هیچ vulnerability شناخته‌شده P0 و هیچ customer data leak باقی نماند — چهار ممیزی امنیتی (nonce/capability, IDOR, input/output/SQL, secrets) با دو ایجنت موازی انجام شد، هرکدام صفر یافته گزارش کرد. T-10.5 فقط برای مسیر بحرانی مشتری روی موبایل واقعی انجام شد؛ admin/tablet باقی مانده.
+**DoD:** ✅ هیچ vulnerability شناخته‌شده P0 و هیچ customer data leak باقی نماند — چهار ممیزی امنیتی (nonce/capability, IDOR, input/output/SQL, secrets) با دو ایجنت موازی انجام شد، هرکدام صفر یافته گزارش کرد. Responsive نیز روی مسیر مشتری و هر ۵ صفحه‌ی ادمین (موبایل + تبلت) زنده تأیید شد.
 
 ---
 
