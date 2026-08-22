@@ -699,27 +699,30 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
 
 # بلوک ۱۰ — Security + Responsive + QA · 2h
 
-- [ ] **T-10.1** 🔒 Nonce + capability audit
+- [x] **T-10.1** 🔒 Nonce + capability audit
   - all state-changing actions
   - REST permission callbacks
   - **0.35h**
+  - پذیرش: هر ۱۷ اکشن `admin_post_` (Admin ۵ کنترلر + Cron manual trigger + Frontend Order/Auth/Recharge) بررسی شد — همه capability/ownership درست + `check_admin_referer` را قبل از خواندن `$_POST` دارند. هیچ REST/`wp_ajax_*` در پلاگین وجود ندارد. صفر یافته، صفر اصلاح لازم.
 
-- [ ] **T-10.2** 🔒 IDOR audit
+- [x] **T-10.2** 🔒 IDOR audit
   - service
   - order
   - wallet
   - payment
   - ledger/history
   - **0.4h**
+  - پذیرش: نگاشت متدهای scoped/unscoped از داکبلاک خودِ پورت‌ها ساخته شد؛ تمام متدهای unscoped (`find()`, `allForAdmin()`, `allRecent()`, `allBalances()`, `all()`) فقط در `wp/Admin/` (capability-gated) صدا زده می‌شوند — صفر فراخوانی از `wp/Frontend/`. هر `service_id`/`payment_id` واردشده از request همیشه با customer id فعلی جفت می‌شود قبل از استفاده. صفر یافته.
 
-- [ ] **T-10.3** 🔒 Input/output/SQL audit
+- [x] **T-10.3** 🔒 Input/output/SQL audit
   - validate
   - sanitize
   - escape
   - `$wpdb->prepare()`
   - **0.35h**
+  - پذیرش: هیچ SQL خام concatenate‌شده در هیچ `Wp*Repository.php` نیست — همه از `$wpdb->prepare()`/`insert()`/`update()` استفاده می‌کنند. هر خواندن `$_GET`/`$_POST` sanitize و هر echo در تمپلیت‌ها (Admin تازه‌ساخته‌شده و Frontend) با `esc_html/esc_attr/esc_url` پوشش داده شده. صفر یافته.
 
-- [ ] **T-10.4** 🔒 Secret audit
+- [x] **T-10.4** 🔒 Secret audit
   - API key
   - Access Token
   - logs
@@ -727,6 +730,7 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
   - JS
   - error responses
   - **0.25h**
+  - پذیرش: `WpApiKeyRepository` فقط ciphertext/fingerprint/last_four ذخیره می‌کند. هر مسیر کد که کلید plaintext در دست دارد (SetupWizard step 2، `SettingsController::handleAddKey/handleTestKey`، `CdnClientResolver`) آن را فقط گذرا مصرف می‌کند، هرگز echo/log/ذخیره نمی‌شود. `CdnProviderException` فقط پیام‌های ثابت امن پرتاب می‌کند. `AccessTokenGate` فقط `password_verify()`. صفر یافته.
 
 - [ ] **T-10.5** Responsive + lifecycle regression
   - real/mobile viewport
@@ -736,12 +740,14 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
   - service
   - admin critical screens
   - **0.4h**
+  - عمداً قربانی شد طبق فهرست قربانی DEMO.md برای رعایت محدودیت زمانی کاربر — یک بازبینی موبایل واقعی هنوز باقی است، قبل از ضبط انجام شود.
 
-- [ ] **T-10.6** Plugin/security check
+- [x] **T-10.6** Plugin/security check
   - critical findings only
   - **0.25h**
+  - پذیرش: نتیجه‌ی T-10.1 تا T-10.4 — صفر یافته‌ی بحرانی برای اصلاح وجود داشت.
 
-**DoD:** هیچ vulnerability شناخته‌شده P0 و هیچ customer data leak باقی نماند.
+**DoD:** ✅ هیچ vulnerability شناخته‌شده P0 و هیچ customer data leak باقی نماند — چهار ممیزی امنیتی (nonce/capability, IDOR, input/output/SQL, secrets) با دو ایجنت موازی انجام شد، هرکدام صفر یافته گزارش کرد. T-10.5 (responsive QA) عمداً برای محدودیت زمانی قربانی شد.
 
 ---
 
