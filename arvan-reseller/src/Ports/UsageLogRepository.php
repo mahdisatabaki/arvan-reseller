@@ -68,4 +68,25 @@ interface UsageLogRepository {
 	 * @return array{traffic_value: int, base_rial: int, markup_rial: int, total_rial: int}
 	 */
 	public function totalsSince( DateTimeImmutable $since ): array;
+
+	/**
+	 * Billed periods not yet rolled into a settlement (`settlement_id IS
+	 * NULL`), oldest first — the input to `SettlementService::run()`
+	 * (BACKLOG T-9.1, BILLING.md §17). Capped by `$limit` as a safety
+	 * bound on one aggregation run, not a page size a caller is expected
+	 * to page through.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function unsettled( int $limit = 1000 ): array;
+
+	/**
+	 * Links a batch of usage_log rows to the settlement that just
+	 * aggregated them, so a later run never counts them again. Paired
+	 * with `SettlementRepository::create()` inside the same
+	 * `SettlementService::run()` call.
+	 *
+	 * @param int[] $usage_log_ids
+	 */
+	public function markSettled( array $usage_log_ids, int $settlement_id ): void;
 }

@@ -20,6 +20,7 @@ use ArvanReseller\Lifecycle\ThresholdPolicyResolver;
 use ArvanReseller\Metering\MeteringService;
 use ArvanReseller\Metering\UsagePricingAdapter;
 use ArvanReseller\Provisioning\ProvisioningService;
+use ArvanReseller\Settlement\SettlementService;
 use ArvanReseller\Wallet\LowBalanceNotifier;
 use ArvanReseller\Wallet\ManualAdjustmentService;
 use ArvanReseller\Wallet\PaymentService;
@@ -34,6 +35,7 @@ use ArvanReseller\Wp\Admin\SetupWizard;
 use ArvanReseller\Wp\Arvan\CdnClientResolver;
 use ArvanReseller\Wp\Cron\MeteringCronHandler;
 use ArvanReseller\Wp\Cron\Scheduler;
+use ArvanReseller\Wp\Cron\SettlementCronHandler;
 use ArvanReseller\Wp\Customer\CustomerRegistration;
 use ArvanReseller\Wp\Frontend\Assets;
 use ArvanReseller\Wp\Frontend\Controllers\AuthController;
@@ -144,6 +146,15 @@ final class Plugin {
 		);
 
 		$handler->register();
+
+		$settlement = new SettlementCronHandler(
+			new SettlementService(
+				new WpUsageLogRepository( $wpdb ),
+				new WpSettlementRepository( $wpdb )
+			)
+		);
+
+		$settlement->register();
 	}
 
 	/**
@@ -216,7 +227,9 @@ final class Plugin {
 			new WpCustomerRepository( $wpdb ),
 			new WpServiceRepository( $wpdb ),
 			new WpWalletRepository( $wpdb ),
-			new WpUsageLogRepository( $wpdb )
+			new WpUsageLogRepository( $wpdb ),
+			new WpApiKeyRepository( $wpdb ),
+			new WpSettlementRepository( $wpdb )
 		);
 
 		$customers = new CustomersController(

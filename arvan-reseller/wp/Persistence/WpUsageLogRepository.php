@@ -133,6 +133,36 @@ final class WpUsageLogRepository implements UsageLogRepository {
 		];
 	}
 
+	public function unsettled( int $limit = 1000 ): array {
+		$rows = $this->db->get_results(
+			$this->db->prepare(
+				'SELECT * FROM %i WHERE settlement_id IS NULL ORDER BY period_start ASC LIMIT %d',
+				$this->table(),
+				$limit
+			),
+			ARRAY_A
+		);
+
+		return is_array( $rows ) ? $rows : [];
+	}
+
+	public function markSettled( array $usage_log_ids, int $settlement_id ): void {
+		if ( [] === $usage_log_ids ) {
+			return;
+		}
+
+		$placeholders = implode( ',', array_fill( 0, count( $usage_log_ids ), '%d' ) );
+
+		$this->db->query(
+			$this->db->prepare(
+				"UPDATE %i SET settlement_id = %d WHERE id IN ({$placeholders})",
+				$this->table(),
+				$settlement_id,
+				...$usage_log_ids
+			)
+		);
+	}
+
 	private function table(): string {
 		return Schema::table( 'usage_log' );
 	}

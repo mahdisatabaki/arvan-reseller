@@ -674,7 +674,7 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
 
 # بلوک ۹ — Settlement + System Status · 1h
 
-- [ ] **T-9.1** SettlementService
+- [x] **T-9.1** SettlementService
   - aggregate:
     - base
     - markup
@@ -682,8 +682,9 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
   - MockSettlement
   - no VAT
   - **0.5h**
+  - پذیرش: `src/Settlement/SettlementService.php` + `wp/Cron/SettlementCronHandler.php` (روی `Scheduler::HOOK_SETTLEMENT` که از T-0.6 زمان‌بندی شده بود ولی هیچ listener‌ای نداشت). دوره‌ی تسویه از خودِ ردیف‌های `usage_log` بدون‌تسویه استخراج می‌شود (min/max واقعی، نه یک بازه‌ی ثابت تقویمی) — یعنی یک اجرا همیشه هرچه معلق است را کامل تسویه می‌کند، حتی بعد از چند روز وقفه‌ی کرون. idempotent روی `(period_start, period_end)` (unique key جدول). ۱۸ تست واحد سبز (شامل نامتغیر `base+markup=gross` طبق BILLING.md §۱۷ و رفتار «اجرای دوباره چیزی دوبار تسویه نمی‌کند»). **زنده تأیید شد روی داده‌ی seed واقعی:** ۳ ردیف مصرف (دو مشتری) → تسویه‌ی ۱۹,۵۰۰ پایه + ۲,۹۲۵ سود = ۲۲,۴۲۵ تومان مجموع مشتری — دقیقاً برابر مجموع بدهی‌های دفتر کل همان مشتریان؛ اجرای دوباره صفر ردیف پیدا کرد (idempotency تأیید شد). تب Finance → Settlements حالا داده‌ی واقعی نشان می‌دهد.
 
-- [ ] **T-9.2** System Status
+- [x] **T-9.2** System Status (فقط بخش‌های مستندشده؛ Resource Sync/Demo Mode/recent-errors عمداً ساخته نشد)
   - API connectivity
   - last metering run
   - last settlement
@@ -692,8 +693,9 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
   - Run Billing Cycle Now
   - recent errors
   - **0.5h**
+  - پذیرش: به‌جای صفحه‌ی ششم مستقل، یک بخش «وضعیت سیستم» به همان Dashboard (T-8.1) اضافه شد — طبق DESIGN.md §۶ که دقیقاً ۵ صفحه برای Reseller Admin فهرست می‌کند و طبق هشدار خودِ Block 8 («از ۱۲ صفحه مستقل اجتناب شود»). نشان می‌دهد: وضعیت کرون (`Scheduler::isHealthy()`/`missingJobs()` — از T-0.6 برای همین منظور ساخته شده بودند)، وضعیت اتصال کلید API پیش‌فرض (از ستون‌های موجود `last_check_ok`/`status`)، آخرین اجرای صورتحساب (آپشن جدید `MeteringCronHandler::LAST_RUN_OPTION`، بعد از هر اجرای موفق نوشته می‌شود)، آخرین تسویه‌حساب. دکمه‌ی «اجرای فوری تسویه‌حساب» کنار دکمه‌ی موجود «اجرای فوری چرخه‌ی صورتحساب» اضافه شد. **عمداً ساخته نشد:** Resource Sync UI (در فهرست قربانی DEMO.md)، Demo Mode (هیچ‌جای مستندات پروژه تعریف نشده — ساختن یک toggle برای مفهومی که وجود ندارد همان نوع حدس‌زدنی است که CLAUDE.md برای جزئیات API ممنوع می‌کند)، و یک ویجت اختصاصی خطاهای اخیر (audit-log UI هم در فهرست قربانی است). زنده تأیید شد: هر دو دکمه («اجرای فوری تسویه‌حساب» و رگرسیون روی «اجرای فوری چرخه‌ی صورتحساب») از طریق UI واقعی (نه فقط CLI) کلیک شدند، nonce/capability عبور کردند، و «آخرین اجرای صورتحساب»/«آخرین تسویه‌حساب» بلافاصله در همان صفحه به‌روزرسانی شدند.
 
-**DoD:** settlement totals با Ledger قابل reconciliation.
+**DoD:** ✅ settlement totals با Ledger قابل reconciliation — تأیید زنده: تسویه‌ی ۲۲,۴۲۵ تومانی دقیقاً برابر مجموع بدهی‌های دفتر کل مربوطه بود.
 
 ---
 

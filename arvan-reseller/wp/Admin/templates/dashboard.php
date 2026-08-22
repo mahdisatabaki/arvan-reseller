@@ -18,6 +18,12 @@
  * @var int $activeServices
  * @var int $suspendedServices
  * @var string $runBillingAction
+ * @var bool $cronHealthy
+ * @var string[] $missingCronJobs
+ * @var array<string, mixed>|null $defaultApiKey
+ * @var string $lastMeteringRunAt
+ * @var array<string, mixed>|null $lastSettlement
+ * @var string $runSettlementAction
  */
 
 use ArvanReseller\Domain\Money;
@@ -84,11 +90,58 @@ require __DIR__ . '/partials/admin-header.php';
 			<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=' . AdminMenu::SLUG_SERVICES ) ); ?>"><?php esc_html_e( 'سرویس‌ها', 'arvan-reseller' ); ?></a>
 			<a class="button" href="<?php echo esc_url( admin_url( 'admin.php?page=' . AdminMenu::SLUG_SETTINGS ) ); ?>"><?php esc_html_e( 'تنظیمات', 'arvan-reseller' ); ?></a>
 		</p>
-		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+		<form style="display:inline-block" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 			<input type="hidden" name="action" value="<?php echo esc_attr( $runBillingAction ); ?>" />
 			<?php wp_nonce_field( $runBillingAction ); ?>
 			<button type="submit" class="button button-primary"><?php esc_html_e( 'اجرای فوری چرخه‌ی صورتحساب', 'arvan-reseller' ); ?></button>
 		</form>
+		<form style="display:inline-block" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+			<input type="hidden" name="action" value="<?php echo esc_attr( $runSettlementAction ); ?>" />
+			<?php wp_nonce_field( $runSettlementAction ); ?>
+			<button type="submit" class="button button-secondary"><?php esc_html_e( 'اجرای فوری تسویه‌حساب', 'arvan-reseller' ); ?></button>
+		</form>
+	</div>
+
+	<div class="arvan-admin-card">
+		<h2><?php esc_html_e( 'وضعیت سیستم', 'arvan-reseller' ); ?></h2>
+		<div class="arvan-admin-grid">
+			<div>
+				<p class="arvan-admin-metric-label"><?php esc_html_e( 'وضعیت کرون', 'arvan-reseller' ); ?></p>
+				<?php if ( $cronHealthy ) : ?>
+					<span class="arvan-admin-badge arvan-admin-badge--ok"><?php esc_html_e( 'سالم', 'arvan-reseller' ); ?></span>
+				<?php else : ?>
+					<span class="arvan-admin-badge arvan-admin-badge--bad">
+						<?php
+						printf(
+							/* translators: %d: number of missing cron jobs */
+							esc_html__( '%d وظیفه‌ی زمان‌بندی‌نشده', 'arvan-reseller' ),
+							count( $missingCronJobs )
+						);
+						?>
+					</span>
+				<?php endif; ?>
+			</div>
+			<div>
+				<p class="arvan-admin-metric-label"><?php esc_html_e( 'اتصال کلید API پیش‌فرض', 'arvan-reseller' ); ?></p>
+				<?php if ( null === $defaultApiKey ) : ?>
+					<span class="arvan-admin-badge arvan-admin-badge--warn"><?php esc_html_e( 'کلید پیش‌فرض تنظیم نشده', 'arvan-reseller' ); ?></span>
+				<?php elseif ( 'active' !== $defaultApiKey['status'] ) : ?>
+					<span class="arvan-admin-badge arvan-admin-badge--bad"><?php esc_html_e( 'غیرفعال', 'arvan-reseller' ); ?></span>
+				<?php elseif ( ! empty( $defaultApiKey['last_check_ok'] ) ) : ?>
+					<span class="arvan-admin-badge arvan-admin-badge--ok"><?php esc_html_e( 'متصل', 'arvan-reseller' ); ?></span>
+				<?php else : ?>
+					<span class="arvan-admin-badge arvan-admin-badge--muted"><?php esc_html_e( 'هنوز آزمایش نشده', 'arvan-reseller' ); ?></span>
+				<?php endif; ?>
+			</div>
+			<div>
+				<p class="arvan-admin-metric-label"><?php esc_html_e( 'آخرین اجرای صورتحساب', 'arvan-reseller' ); ?></p>
+				<p><?php echo '' === $lastMeteringRunAt ? '—' : esc_html( mysql2date( 'Y/m/d H:i', $lastMeteringRunAt ) ); ?></p>
+			</div>
+			<div>
+				<p class="arvan-admin-metric-label"><?php esc_html_e( 'آخرین تسویه‌حساب', 'arvan-reseller' ); ?></p>
+				<p><?php echo null === $lastSettlement ? '—' : esc_html( mysql2date( 'Y/m/d H:i', $lastSettlement['transmitted_at'] ?? $lastSettlement['created_at'] ) ); ?></p>
+			</div>
+		</div>
 	</div>
 
 </div>

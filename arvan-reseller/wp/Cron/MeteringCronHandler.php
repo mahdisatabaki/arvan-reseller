@@ -60,6 +60,14 @@ final class MeteringCronHandler {
 	private const LOCK_TTL       = 5 * MINUTE_IN_SECONDS;
 
 	/**
+	 * Public: read by the Admin Dashboard's System Status section
+	 * (BACKLOG T-9.2) via `get_option()` directly — a timestamp, not a
+	 * repository-backed fact, so a plain option is the right seam here
+	 * (same reasoning `ResellerSettings` gives for using options at all).
+	 */
+	public const LAST_RUN_OPTION = 'arvan_last_metering_run_at';
+
+	/**
 	 * Public: the Admin Dashboard's "Run Billing Cycle Now" button
 	 * (BACKLOG T-8.1, SCREEN-SPECS.md §2) needs this to build its
 	 * admin-post.php link and matching `wp_nonce_field()`.
@@ -116,7 +124,10 @@ final class MeteringCronHandler {
 		set_transient( self::LOCK_TRANSIENT, 1, self::LOCK_TTL );
 
 		try {
-			return $this->processDue( $actorWpUserId );
+			$result = $this->processDue( $actorWpUserId );
+			update_option( self::LAST_RUN_OPTION, gmdate( 'Y-m-d H:i:s' ) );
+
+			return $result;
 		} finally {
 			delete_transient( self::LOCK_TRANSIENT );
 		}

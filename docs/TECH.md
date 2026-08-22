@@ -83,6 +83,8 @@ arvan-reseller/
 │   ├── Provisioning/    (ProvisioningService, ResourceSyncService, DeliveryData)
 │   ├── Metering/        (MeteringService, UsagePeriod, UsagePricingAdapter)
 │   ├── Billing/         (BillingService)
+│   ├── Settlement/      (SettlementService — usage_log → arvan_settlements
+│   │                      reconciliation, BILLING.md §17)
 │   ├── Lifecycle/       (ServiceStatus, SuspensionEngine, TerminationEngine, ThresholdPolicy(Resolver))
 │   ├── Arvan/           (CdnClient port, CdnResource, ArvanCdnClient, MockCdnClient)
 │   └── Ports/

@@ -20,12 +20,12 @@
 بلوک ۶  ██████████ 100%   تمام (۵/۵ تسک)
 بلوک ۷  ██████████ 100%   تمام (۶/۶ تسک) — DoD تأیید شد با جریان کامل زنده
 بلوک ۸  ██████████ 100%   تمام (۵/۵ تسک) — DoD تأیید شد با ورود ادمین واقعی + نوشتن واقعی روی هر ۵ صفحه
-بلوک ۹  ░░░░░░░░░░   0%   عمداً قربانی شد (محدودیت زمانی کاربر؛ فهرست قربانی DEMO.md)
-بلوک ۱۰ ████████░░  67%   T-10.1/۱۰.۲/۱۰.۳/۱۰.۴/۱۰.۶ تمام (صفر یافته)؛ T-10.5 (responsive) قربانی شد
-بلوک ۱۱ ░░░░░░░░░░   0%
+بلوک ۹  ██████████ 100%   تمام (۲/۲ تسک) — DoD تأیید شد: تسویه‌ی ۲۲,۴۲۵ تومانی برابر مجموع دفتر کل
+بلوک ۱۰ ████████░░  67%   T-10.1/۱۰.۲/۱۰.۳/۱۰.۴/۱۰.۶ تمام (صفر یافته)؛ T-10.5 فقط مسیر مشتری روی موبایل
+بلوک ۱۱ ████████░░  67%   T-11.1/۱۱.۲/۱۱.۳ تمام؛ T-11.4/۱۱.۵/۱۱.۶ اقدام انسانی‌اند (ضبط/تحویل)
 ```
 
-**قدم بعدی: هیچ کار خودکاری باقی نمانده — T-11.4/۱۱.۵/۱۱.۶ (ضبط دسکتاپ/موبایل و تحویل نهایی) اقدام انسانی‌اند، فقط کاربر می‌تواند انجامشان دهد.**
+**قدم بعدی: هیچ کار خودکاری باقی نمانده — ضبط دسکتاپ/موبایل و تحویل نهایی (T-11.4/۱۱.۵/۱۱.۶) فقط کاربر می‌تواند انجام دهد.**
 
 **یافته‌ی مهم رهرسال (T-11.3):** کلید API پیش‌فرض حین تست‌های قبلی به‌طور تصادفی `disabled` شده بود — رفع شد، ولی **قبل از ضبط حتماً بررسی شود** (`تنظیمات → کلیدهای API`) که وضعیت کلید `فعال` باشد، وگرنه سفارش CDN پیام غلط «امکان فروش سرویس وجود ندارد» می‌دهد به‌جای رفتار شناخته‌شده‌ی «تلاش با API واقعی → شکست Provider». همچنین: چرخه‌ی کامل متر/صورتحساب/تعلیق/ازسرگیری روی سرویس واقعاً فعال قابل رهرسال نبود چون کلید ArvanCloud این محیط هرگز موفق به ساخت منبع واقعی نشده (از T-1.1 مستند است) — برای آن بخش از ضبط، طبق DEMO.md §۵، باید یا یک کلید واقعاً کارکن استفاده شود یا موقتاً به `MockCdnClient` سوییچ شود؛ منطق suspend/resume خودش قبلاً کامل تست شده (بلوک ۶).
 
@@ -58,7 +58,7 @@
 | ۶ | Limits + Lifecycle | ✅ تمام | 5/5 | `src/Lifecycle/ThresholdPolicy.php`, `ThresholdPolicyResolver.php`, `SuspensionEngine.php`, `TerminationEngine.php`, `src/Ports/NotificationRepository.php`, `wp/Persistence/WpNotificationRepository.php`, `wp/Security/WordPressMailer.php`, `src/Wallet/LowBalanceNotifier.php`, `wp/Cron/MeteringCronHandler.php` (به‌روزشده) |
 | ۷ | Customer Frontend | ✅ تمام | 6/6 | `assets/css/foundation.css`, `wp/Frontend/RouteRegistrar.php`, `TemplateRouter.php`, `Assets.php`, `CurrentCustomer.php`, `Controllers/OrderController.php`, `AuthController.php`, `RechargeController.php`, `templates/cdn.php`, `auth.php`, `recharge.php`, `service-detail.php`, `account.php`, `partials/topbar.php`, `wp/Arvan/CdnClientResolver.php` |
 | ۸ | Reseller Admin | ✅ تمام | 5/5 | `wp/Admin/AdminMenu.php`, `Controllers/DashboardController.php`, `CustomersController.php`, `ServicesController.php`, `FinanceController.php`, `SettingsController.php`, `templates/dashboard.php`, `customers.php`, `services.php`, `finance.php`, `settings.php`, `partials/admin-header.php`, `src/Provisioning/ProvisioningService.php` (`retry()`), `src/Ports/SettlementRepository.php`, `wp/Persistence/WpSettlementRepository.php` |
-| ۹ | Settlement + System Status | ⏳ شروع‌نشده | 0/2 | — |
+| ۹ | Settlement + System Status | ✅ تمام | 2/2 | `src/Settlement/SettlementService.php`, `wp/Cron/SettlementCronHandler.php`, `src/Ports/SettlementRepository.php` (`create()`), `wp/Persistence/WpSettlementRepository.php` (`create()`), `UsageLogRepository::unsettled()`/`markSettled()`, `MeteringCronHandler::LAST_RUN_OPTION`, Dashboard "وضعیت سیستم" section |
 | ۱۰ | Security + Responsive + QA | ⏳ شروع‌نشده | 0/6 | — |
 | ۱۱ | Demo + Delivery | ⏳ شروع‌نشده | 0/6 | — |
 
@@ -291,6 +291,16 @@
 دو ایجنت پس‌زمینه‌ی موازی: یکی T-10.1 (nonce+capability) + T-10.4 (secret) را پوشش داد، دیگری T-10.2 (IDOR) + T-10.3 (input/output/SQL). هر دو با grep هدفمند روی الگوهای مستندشده در داکبلاک پورت‌ها کار کردند، نه خواندن سرتاسری هر فایل. **نتیجه: صفر یافته‌ی واقعی در هر چهار محور — همه‌ی ۱۷ اکشن `admin_post_`، هر متد unscoped repository، هر SQL، و هر مسیر کلید plaintext از قبل درست بودند.** این تأیید می‌کند که الگوهای امنیتی که در تک‌تک بلوک‌های ۰ تا ۸ به‌طور مداوم رعایت شده بودند (capability tier درست، `check_admin_referer`، خانواده‌ی `*ForCustomer`/`findOwnedByCustomer`، `$wpdb->prepare()`، `esc_*()`) واقعاً سرتاسر پلاگین یکدست ماندند، نه فقط در چند فایل نمونه.
 
 هم‌زمان، محیط تست محلی (`arvan-test.test`) کاملاً پاک‌سازی شد: جدول‌های `arvan_customers/wallets/ledger/payments/orders/services/usage_log/notifications/audit_log` خالی شدند و دو کاربر تستیِ کثیف (`testcustomer1`, `newcustomer2`) حذف شدند — عمداً `arvan_api_keys` و آپشن‌های `arvan_reseller_*` (پروفایل کسب‌وکار/قیمت‌گذاری/چرخه‌عمر/وضعیت ویزارد) دست‌نخورده ماندند تا تنظیمات واقعی reseller از بین نرود. رمز کاربر ادمین (`admin`) هم قبلاً (حین تست بلوک ۸) بازنشانی شده بود. داشبورد ادمین با حالت خالی صحیح («هنوز هیچ مشتری‌ای ثبت‌نام نکرده») و صفحه‌ی CDN عمومی هر دو زنده تأیید شدند.
+
+### بلوک ۹ — Settlement + System Status (تمام شد)
+
+بعد از اینکه کاربر با پیام «ادامه تسک‌ها برو» خواست همه‌ی بک‌لاگ قابل‌اجرا تمام شود، بلوک ۹ (که قبلاً عمداً به‌خاطر محدودیت زمانی کنار گذاشته شده بود) دوباره در دستور کار قرار گرفت.
+
+**T-9.1 — SettlementService:** تصمیم طراحی کلیدی این بود که دوره‌ی تسویه از خودِ داده استخراج شود، نه از یک بازه‌ی تقویمی ثابت (مثل «هر روز از نیمه‌شب تا نیمه‌شب») که `MeteringCronHandler` برای متر‌کردن استفاده می‌کند — چون هدف تسویه «هرچه معلق است را کامل ببند» است، نه «امروز را ببند»؛ اگر کرون چند روز idle بماند (که TECH.md §۹ صریحاً به‌عنوان یک واقعیت WP-Cron قبول کرده)، یک اجرا باید همه‌ی روزهای عقب‌افتاده را هم بگیرد، بدون منطق catch-up جدا. `min(period_start)`/`max(period_end)` روی خودِ ردیف‌های `usage_log` بدون‌تسویه، همین را رایگان می‌دهد. `Scheduler::HOOK_SETTLEMENT` از T-0.6 روزانه زمان‌بندی شده بود ولی تا امروز هیچ listener‌ای نداشت — `SettlementCronHandler` (کپی دقیق الگوی `MeteringCronHandler`ی که برای Manual Trigger ساخته شده بود) همان hook را مصرف می‌کند.
+
+**T-9.2 — System Status:** به‌جای صفحه‌ی ادمین ششم، یک بخش به همان Dashboard اضافه شد — چون DESIGN.md §۶ دقیقاً ۵ صفحه برای Reseller Admin تعریف کرده و بلوک ۸ خودش صریحاً «از ۱۲ صفحه مستقل اجتناب شود» را به‌عنوان قانون اول گذاشته بود؛ ساختن صفحه‌ی ششم دقیقاً همان اشتباهی بود که آن قانون می‌خواست جلویش را بگیرد. نکته‌ی جالب: `Scheduler::isHealthy()`/`missingJobs()`/`nextRuns()` از همان T-0.6 با کامنت صریح «for the System Status screen» ساخته شده بودند ولی تا امروز هیچ UI ای آن‌ها را نمی‌خواند — این بخش اولین مصرف‌کننده‌ی واقعی آن متدهاست. سه بخش از هفت بولت BACKLOG عمداً ساخته نشد: Resource Sync UI (در فهرست قربانی DEMO.md)، Demo Mode (هیچ‌جای هیچ سندی این مفهوم تعریف نشده — طبق همان قانون «هیچ endpoint/فیلد API را حدس نزن»، حدس‌زدن یک ویژگی محصولی تعریف‌نشده هم قبول نشد)، و یک ویجت اختصاصی خطاهای اخیر (audit-log UI هم قربانی‌شده است).
+
+**تأیید نهایی زنده:** روی داده‌ی seed شده‌ی بلوک ۱۱ (۳ ردیف مصرف واقعی، دو مشتری) — یک اجرای تسویه، ۱۹,۵۰۰ پایه + ۲,۹۲۵ سود = ۲۲,۴۲۵ تومان مجموع مشتری، دقیقاً برابر مجموع همان بدهی‌ها در دفتر کل (تأیید BILLING.md §۱۸: «settlement totals reconcile to usage rows»)؛ اجرای دوباره صفر ردیف پیدا کرد. تب Finance → Settlements حالا این ردیف واقعی را نشان می‌دهد (قبلاً همیشه خالی بود، از بلوک ۸). هر دو دکمه‌ی جدید Dashboard («اجرای فوری تسویه‌حساب» و رگرسیون روی «اجرای فوری چرخه‌ی صورتحساب») از طریق UI واقعی کلیک شدند، nonce/capability عبور کردند، و مقادیر «آخرین اجرا»/«آخرین تسویه» بلافاصله به‌روزرسانی شدند.
 
 ## تصمیم‌های باز (باید در بلوک‌های بعدی حل شوند)
 
