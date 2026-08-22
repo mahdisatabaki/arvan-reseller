@@ -21,7 +21,14 @@ use ArvanReseller\Metering\MeteringService;
 use ArvanReseller\Metering\UsagePricingAdapter;
 use ArvanReseller\Provisioning\ProvisioningService;
 use ArvanReseller\Wallet\LowBalanceNotifier;
+use ArvanReseller\Wallet\ManualAdjustmentService;
 use ArvanReseller\Wallet\PaymentService;
+use ArvanReseller\Wp\Admin\AdminMenu;
+use ArvanReseller\Wp\Admin\Controllers\CustomersController;
+use ArvanReseller\Wp\Admin\Controllers\DashboardController;
+use ArvanReseller\Wp\Admin\Controllers\FinanceController;
+use ArvanReseller\Wp\Admin\Controllers\ServicesController;
+use ArvanReseller\Wp\Admin\Controllers\SettingsController;
 use ArvanReseller\Wp\Admin\ResellerSettings;
 use ArvanReseller\Wp\Admin\SetupWizard;
 use ArvanReseller\Wp\Arvan\CdnClientResolver;
@@ -44,6 +51,7 @@ use ArvanReseller\Wp\Persistence\WpNotificationRepository;
 use ArvanReseller\Wp\Persistence\WpOrderRepository;
 use ArvanReseller\Wp\Persistence\WpPaymentRepository;
 use ArvanReseller\Wp\Persistence\WpServiceRepository;
+use ArvanReseller\Wp\Persistence\WpSettlementRepository;
 use ArvanReseller\Wp\Persistence\WpUsageLogRepository;
 use ArvanReseller\Wp\Persistence\WpWalletRepository;
 use ArvanReseller\Wp\Security\AccessTokenGate;
@@ -182,9 +190,14 @@ final class Plugin {
 	}
 
 	/**
-	 * Wires the admin-only object graph. Every dependency SetupWizard needs
-	 * is built once, here — the composition root — so SetupWizard itself
-	 * never constructs its own collaborators (T-2.4 design).
+	 * Wires the admin-only object graph. Every dependency a controller needs
+	 * is built once, here — the composition root — so no admin controller
+	 * ever constructs its own collaborators (T-2.4 design, extended to every
+	 * Block 8 controller). AdminMenu owns page/menu *structure* only; each
+	 * controller still hooks its own `admin_post_{action}` handlers via its
+	 * own `register()`, called separately below — the same split
+	 * OrderController/AuthController/RechargeController established for the
+	 * frontend in bootFrontend().
 	 */
 	private function bootAdmin(): void {
 		global $wpdb;
@@ -198,6 +211,55 @@ final class Plugin {
 		);
 
 		$wizard->register();
+
+		$dashboard = new DashboardController(
+			new WpCustomerRepository( $wpdb ),
+			new WpServiceRepository( $wpdb ),
+			new WpWalletRepository( $wpdb ),
+			new WpUsageLogRepository( $wpdb )
+		);
+
+		$customers = new CustomersController(
+			new WpCustomerRepository( $wpdb ),
+			new WpWalletRepository( $wpdb ),
+			new WpServiceRepository( $wpdb ),
+			new WpPaymentRepository( $wpdb ),
+			new WpLedgerRepository( $wpdb ),
+			new WpUsageLogRepository( $wpdb ),
+			new ManualAdjustmentService( new WpLedgerRepository( $wpdb ), new WpAuditLogger( $wpdb ) )
+		);
+		$customers->register();
+
+		$services = new ServicesController(
+			new WpServiceRepository( $wpdb ),
+			new WpCustomerRepository( $wpdb ),
+			new WpApiKeyRepository( $wpdb ),
+			new CdnClientResolver( new WpApiKeyRepository( $wpdb ), new WordPressSecretStore() ),
+			new ProvisioningService(
+				new WpOrderRepository( $wpdb ),
+				new WpServiceRepository( $wpdb ),
+				new SystemClock()
+			)
+		);
+		$services->register();
+
+		$finance = new FinanceController(
+			new WpPaymentRepository( $wpdb ),
+			new WpLedgerRepository( $wpdb ),
+			new WpSettlementRepository( $wpdb ),
+			new WpCustomerRepository( $wpdb )
+		);
+		$finance->register();
+
+		$settings = new SettingsController(
+			new WordPressSecretStore(),
+			new WpApiKeyRepository( $wpdb ),
+			new ApiKeyConnectionTester(),
+			new ResellerSettings()
+		);
+		$settings->register();
+
+		( new AdminMenu( $dashboard, $customers, $services, $finance, $settings ) )->register();
 	}
 
 	public function loadTextdomain(): void {

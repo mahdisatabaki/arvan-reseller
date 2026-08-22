@@ -110,6 +110,29 @@ final class WpUsageLogRepository implements UsageLogRepository {
 		return null === $row ? null : $row;
 	}
 
+	public function totalsSince( DateTimeImmutable $since ): array {
+		$row = $this->db->get_row(
+			$this->db->prepare(
+				'SELECT
+					COALESCE(SUM(traffic_value),0) AS traffic_value,
+					COALESCE(SUM(base_rial),0) AS base_rial,
+					COALESCE(SUM(markup_rial),0) AS markup_rial,
+					COALESCE(SUM(total_rial),0) AS total_rial
+				FROM %i WHERE period_start >= %s',
+				$this->table(),
+				$since->format( 'Y-m-d H:i:s' )
+			),
+			ARRAY_A
+		);
+
+		return [
+			'traffic_value' => (int) ( $row['traffic_value'] ?? 0 ),
+			'base_rial'     => (int) ( $row['base_rial'] ?? 0 ),
+			'markup_rial'   => (int) ( $row['markup_rial'] ?? 0 ),
+			'total_rial'    => (int) ( $row['total_rial'] ?? 0 ),
+		];
+	}
+
 	private function table(): string {
 		return Schema::table( 'usage_log' );
 	}

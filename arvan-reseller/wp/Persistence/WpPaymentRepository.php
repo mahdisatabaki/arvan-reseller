@@ -126,6 +126,15 @@ final class WpPaymentRepository implements PaymentRepository {
 		return is_array( $rows ) ? $rows : [];
 	}
 
+	public function allRecent( int $limit = 50 ): array {
+		$rows = $this->db->get_results(
+			$this->db->prepare( 'SELECT * FROM %i ORDER BY created_at DESC LIMIT %d', $this->table(), $limit ),
+			ARRAY_A
+		);
+
+		return is_array( $rows ) ? $rows : [];
+	}
+
 	/**
 	 * @return array<string, mixed>|null
 	 */

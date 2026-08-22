@@ -62,4 +62,27 @@ interface WalletRepository {
 	 * resumable (`resume_threshold_rial`, PRD §5.5 / ADR-012).
 	 */
 	public function resumeThreshold( int $customer_id ): Money;
+
+	/**
+	 * Every wallet's current balance, keyed by customer_id — the Admin
+	 * Dashboard's "total virtual balances" figure (SCREEN-SPECS.md §2) and
+	 * the Admin Customers list's per-row balance column (§3). One query
+	 * for the whole reseller rather than N `currentBalance()` calls, so an
+	 * admin list with many customers stays free of an obvious N+1
+	 * (TECH.md §13).
+	 *
+	 * @return array<int, Money>
+	 */
+	public function allBalances(): array;
+
+	/**
+	 * Count of wallets currently in the low-balance warning zone — balance
+	 * positive but at or below the reseller's configured
+	 * `notify_threshold_rial` — the Admin Dashboard's "low-balance warnings"
+	 * figure (SCREEN-SPECS.md §2). Excludes `balance <= 0`: that zone is
+	 * already covered by the Dashboard's separate "suspended services"
+	 * count (CLAUDE.md: `balance <= 0` triggers Suspend), so counting it
+	 * here too would double up the same condition under two labels.
+	 */
+	public function countLowBalance(): int;
 }

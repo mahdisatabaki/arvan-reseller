@@ -92,4 +92,60 @@ final class ProvisioningService {
 			'message'            => null,
 		];
 	}
+
+	/**
+	 * Re-attempts `createResource()` for a service already sitting in
+	 * `provisioning_failed` — the Admin Services "retry" action
+	 * (SCREEN-SPECS.md §5). Unlike `provision()`, this does not create a new
+	 * order/service row: the order is already `failed` and stays that way
+	 * (BACKLOG's order state machine has no "retry" transition of its own),
+	 * only the service's status and provisioning-attempt history move.
+	 * `ServiceStatus::PROVISIONING_FAILED → PROVISIONING → ACTIVE`/
+	 * `PROVISIONING_FAILED` are the same legal transitions `provision()`
+	 * already relies on.
+	 *
+	 * @param array{id: int|string, domain: string} $service An already-fetched
+	 *        service row (e.g. from `ServiceRepository::find()`).
+	 *
+	 * @return array{
+	 *     ok: bool,
+	 *     service_id: int,
+	 *     status: string,
+	 *     remote_resource_id: ?string,
+	 *     message: ?string
+	 * }
+	 */
+	public function retry( array $service, CdnClient $client ): array {
+		$service_id = (int) $service['id'];
+		$domain     = (string) $service['domain'];
+
+		$this->services->updateStatus( $service_id, ServiceStatus::PROVISIONING );
+
+		try {
+			$resource = $client->createResource( $domain );
+		} catch ( CdnProviderException $e ) {
+			$this->services->recordProvisionAttempt( $service_id, $e->getMessage() );
+			$this->services->updateStatus( $service_id, ServiceStatus::PROVISIONING_FAILED );
+
+			return [
+				'ok'                 => false,
+				'service_id'         => $service_id,
+				'status'             => ServiceStatus::PROVISIONING_FAILED,
+				'remote_resource_id' => null,
+				'message'            => $e->getMessage(),
+			];
+		}
+
+		$this->services->recordProvisioned( $service_id, $resource->resourceId, $this->clock->now() );
+		$this->services->recordProvisionAttempt( $service_id, null );
+		$this->services->updateStatus( $service_id, ServiceStatus::ACTIVE );
+
+		return [
+			'ok'                 => true,
+			'service_id'         => $service_id,
+			'status'             => ServiceStatus::ACTIVE,
+			'remote_resource_id' => $resource->resourceId,
+			'message'            => null,
+		];
+	}
 }

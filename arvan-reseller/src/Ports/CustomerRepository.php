@@ -57,4 +57,15 @@ interface CustomerRepository {
 	 * @return array<string, mixed>|null
 	 */
 	public function find( int $customer_id ): ?array;
+
+	/**
+	 * Every customer, newest first — the Admin Customers list
+	 * (SCREEN-SPECS.md §3). Admin-only: this has no per-customer scoping
+	 * because the caller here is the reseller itself, not a customer
+	 * request (SECURITY.md §6's IDOR concern does not apply to an admin
+	 * capability-gated screen).
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function all(): array;
 }

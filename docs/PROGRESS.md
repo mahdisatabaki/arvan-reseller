@@ -8,7 +8,7 @@
 
 ## الان کجاییم
 
-**بلوک ۰ تا ۷ کامل تمام شدند — کل سفر مشتری (ثبت‌نام → صفحه‌ی CDN → شارژ کیف پول → سفارش → داشبورد) روی مرورگر زنده تأیید شد.**
+**بلوک ۰ تا ۸ کامل تمام شدند — کل سفر مشتری و کل پنل مدیریت ریسلر روی مرورگر زنده تأیید شدند.**
 
 ```
 بلوک ۰  ██████████ 100%   تمام (۹/۹ تسک)
@@ -19,13 +19,13 @@
 بلوک ۵  ██████████ 100%   تمام (۴/۴ تسک)
 بلوک ۶  ██████████ 100%   تمام (۵/۵ تسک)
 بلوک ۷  ██████████ 100%   تمام (۶/۶ تسک) — DoD تأیید شد با جریان کامل زنده
-بلوک ۸  ░░░░░░░░░░   0%
+بلوک ۸  ██████████ 100%   تمام (۵/۵ تسک) — DoD تأیید شد با ورود ادمین واقعی + نوشتن واقعی روی هر ۵ صفحه
 بلوک ۹  ░░░░░░░░░░   0%
 بلوک ۱۰ ░░░░░░░░░░   0%
 بلوک ۱۱ ░░░░░░░░░░   0%
 ```
 
-**قدم بعدی: بلوک ۸ — Reseller Admin.**
+**قدم بعدی: بلوک ۹ — Settlement + System Status.**
 
 **تصمیم محصولی مهم بلوک ۶:** چون هیچ API واقعی hold/unhold روی آروان تأیید نشده (باز از T-1.1)، Suspend/Resume **فقط وضعیت محلی**اند — سرویس CDN واقعی روی آروان همچنان کار می‌کند. Terminate اما واقعی است (`deleteResource()` تأیید شده). این محدودیت شناخته‌شده است، نه باگ؛ در DEMO.md صریحاً ثبت شد.
 
@@ -52,8 +52,8 @@
 | ۴ | CDN Provisioning + Mapping | ✅ تمام | 4/4 | `src/Lifecycle/ServiceStatus.php`, `src/Ports/OrderRepository.php`, `wp/Persistence/WpOrderRepository.php`, `wp/Persistence/WpServiceRepository.php`, `src/Provisioning/ProvisioningService.php`, `src/Provisioning/ResourceSyncService.php`, `src/Provisioning/DeliveryData.php` |
 | ۵ | Metering + Billing | ✅ تمام | 4/4 | `src/Metering/MeteringService.php`, `src/Metering/UsagePeriod.php`, `src/Metering/UsagePricingAdapter.php`, `src/Ports/UsageLogRepository.php`, `wp/Persistence/WpUsageLogRepository.php`, `src/Billing/BillingService.php`, `wp/Cron/MeteringCronHandler.php`, `wp/Support/SystemClock.php` |
 | ۶ | Limits + Lifecycle | ✅ تمام | 5/5 | `src/Lifecycle/ThresholdPolicy.php`, `ThresholdPolicyResolver.php`, `SuspensionEngine.php`, `TerminationEngine.php`, `src/Ports/NotificationRepository.php`, `wp/Persistence/WpNotificationRepository.php`, `wp/Security/WordPressMailer.php`, `src/Wallet/LowBalanceNotifier.php`, `wp/Cron/MeteringCronHandler.php` (به‌روزشده) |
-| ۷ | Customer Frontend | 🔶 در حال انجام | 2/6 | `assets/css/foundation.css`, `wp/Frontend/RouteRegistrar.php`, `TemplateRouter.php`, `Assets.php` |
-| ۸ | Reseller Admin | ⏳ شروع‌نشده | 0/5 | — |
+| ۷ | Customer Frontend | ✅ تمام | 6/6 | `assets/css/foundation.css`, `wp/Frontend/RouteRegistrar.php`, `TemplateRouter.php`, `Assets.php`, `CurrentCustomer.php`, `Controllers/OrderController.php`, `AuthController.php`, `RechargeController.php`, `templates/cdn.php`, `auth.php`, `recharge.php`, `service-detail.php`, `account.php`, `partials/topbar.php`, `wp/Arvan/CdnClientResolver.php` |
+| ۸ | Reseller Admin | ✅ تمام | 5/5 | `wp/Admin/AdminMenu.php`, `Controllers/DashboardController.php`, `CustomersController.php`, `ServicesController.php`, `FinanceController.php`, `SettingsController.php`, `templates/dashboard.php`, `customers.php`, `services.php`, `finance.php`, `settings.php`, `partials/admin-header.php`, `src/Provisioning/ProvisioningService.php` (`retry()`), `src/Ports/SettlementRepository.php`, `wp/Persistence/WpSettlementRepository.php` |
 | ۹ | Settlement + System Status | ⏳ شروع‌نشده | 0/2 | — |
 | ۱۰ | Security + Responsive + QA | ⏳ شروع‌نشده | 0/6 | — |
 | ۱۱ | Demo + Delivery | ⏳ شروع‌نشده | 0/6 | — |
@@ -258,6 +258,28 @@
 
 **تأیید نهایی زنده (توسط من، بعد از سیم‌کشی هر دو کنترلر در `Plugin.php`):** روی `arvan-test.test` — مشتری جدید از صفر ثبت‌نام کرد → صفحه‌ی CDN با موجودی صفر (CTA درست: افزایش اعتبار) → شارژ ۳۰,۰۰۰ تومانی → تأیید Mock → موجودی/badge کیف پول در همان لحظه به‌روزرسانی شد → صفحه‌ی سفارش با دامنه‌ی نامعتبر خطای فارسی صحیح داد → داشبورد با هر چهار تب (شامل تراکنش دستی seed‌شده) درست رندر شد.
 
+### بلوک ۸ — Reseller Admin (تمام شد)
+
+اولین بلوک UI ادمین‌محور با ۵ صفحه — تا اینجا تنها صفحه‌ی ادمین موجود، Setup Wizard تک‌مصرفی بود.
+
+**گپ‌های زیرساختی که قبل از شروع UI پیدا و رفع شدند** (همان الگوی «قبل از فرستادن ایجنت‌ها، معماری را تمیز کن» که در بستن بلوک ۷ جواب داد): هیچ repository‌ای تا این‌جا کوئری «همه‌ی X در کل سیستم» نداشت — همه چیز عمداً scoped به یک مشتری بود (SECURITY.md §۶). برای صفحات ادمین این اسکوپ اشتباه است؛ صفحه‌ی ادمین با capability گیت می‌شود، نه با مالکیت مشتری. شش متد جدید bulk اضافه شدند، هرکدام با یک کوئری واحد (نه N+1، طبق هشدار صریح TECH.md §۱۳):
+`CustomerRepository::all()`, `ServiceRepository::allForAdmin()`, `WalletRepository::allBalances()`/`countLowBalance()`, `PaymentRepository::allRecent()`, `LedgerRepository::allRecent()`, `UsageLogRepository::totalsSince()`. علاوه‌بر این، یک پورت کاملاً جدید ساخته شد: `src/Ports/SettlementRepository.php` + `wp/Persistence/WpSettlementRepository.php` (فقط `allRecent()` — نوشتن/ساخت تسویه‌حساب کار T-9.1 است، نه این بلوک). و `ProvisioningService::retry()` — چون دکمه‌ی «تلاش مجدد» روی سرویس‌های `provisioning_failed` نیاز به یک مسیر state-machine مشابه `provision()` داشت اما بدون ساخت دوباره‌ی order/service. این متد جدا با ۱۳ تست واحد (مسیر موفق + شکست، شامل بررسی دقیق توالی انتقال وضعیت) تأیید شد.
+
+**استراتژی موازی‌سازی:** ساختار مشترک (منوی ادمین `wp/Admin/AdminMenu.php` + بخش مشترک `partials/admin-header.php` — همان کانوانسیون `.wrap`/RTL که Setup Wizard از قبل تثبیت کرده بود، نه سیستم CSS جدید `.arvan-app` که مخصوص فرانت‌اند است) و شش گپ repository را خودم ساختم، سپس T-8.1 (Dashboard) و T-8.5 (Settings) را خودم پیش بردم (بیشترین وابستگی به منطق دامنه/تنظیمات موجود) و T-8.2 (Customers) را به یک ایجنت و T-8.3+T-8.4 (Services+Finance) را به ایجنت دوم — هر دو موازی، هر دو صریحاً از دست‌زدن به `Plugin.php`/`AdminMenu.php`/`foundation.css`/`BACKLOG.md`/`PROGRESS.md`/فایل‌های یکدیگر منع شدند. سیم‌کشی نهایی در `Plugin::bootAdmin()` و تست زنده را خودم بعد از برگشتن هر دو انجام دادم.
+
+**T-8.1 — Dashboard:** `DashboardController`/`dashboard.php`. «system/API status summary» که DESIGN.md §۱۲ ذکر کرده بود عمداً اینجا نیامد — چک شد که BACKLOG خودش این را از محتوای T-8.1 حذف کرده و آن را به‌جایش در T-9.2 «System Status» گذاشته؛ رعایت مرز بین دو تسک، نه یک حذف اشتباه.
+
+**T-8.2 — Customers (ایجنت):** `CustomersController`/`customers.php`، یک کنترلر/تمپلیت با دو حالت (`?customer_id=`). عملیات «تغییر دستی موجودی» را دوباره پیاده نکرد — مستقیماً `ManualAdjustmentService` موجود (که خودش هم‌زمان ledger و audit را می‌نویسد) را صدا زد. تنها گزارش ایجنت: ستون «مصرف/هزینه‌ی اخیر» در فهرست مشتریان مجبور شد یک حلقه‌ی کوچک per-customer روی `historyForCustomer(..., 1)` بزند چون هیچ نسخه‌ی bulk «آخرین دوره‌ی هر مشتری» وجود ندارد — به‌صراحت در کامنت کد فرق گذاشته شد با دو ستون دیگر (موجودی/تعداد سرویس) که واقعاً bulk‌اند.
+
+**T-8.3 — Services (ایجنت):** `ServicesController`/`services.php`. عملیات «تلاش مجدد» دقیقاً روی `ProvisioningService::retry()` تازه‌ساخته سوار شد — منطق state machine تکرار نشد، کنترلر فقط `CdnClientResolver::resolveById()` را صدا زد و نتیجه را رندر کرد. ستون «هزینه‌ی اخیر» با یک `—` صادقانه رندر شد به‌جای حدس‌زدن؛ یادداشت باز شد.
+
+**T-8.4 — Finance (همان ایجنت):** `FinanceController`/`finance.php`، سه تب. تب Settlements از پورت تازه‌ساخته‌ی `SettlementRepository` می‌خواند و خالی است — رفتار موردانتظار، نه باگ، چون T-9.1 هنوز چیزی در آن جدول نمی‌نویسد.
+
+**T-8.5 — Settings (من):** `SettingsController`/`settings.php`، ۵ تب. هر تب یک پوسته‌ی نازک روی منطق از‌پیش‌موجود است (`ResellerSettings::setBusinessProfile/setPricing/setLifecyclePolicy/setLayout`, `ApiKeyRepository::create/setDefault/setStatus`) — دقیقاً همان الگوی test-then-persist مرحله‌ی ۲ ویزارد برای افزودن کلید جدید تکرار شد، نه یک نسخه‌ی دوم.
+
+**تأیید نهایی زنده (توسط من، بعد از سیم‌کشی هر سه کنترلر در `Plugin.php`):** روی `arvan-test.test` — رمز کاربر ادمین محلی (`admin`) با `wp_set_password()` از طریق بوت‌استرپ خودِ وردپرس بازنشانی شد (نه هش دستی)، ورود واقعی انجام شد. هر ۵ صفحه بازدید و بازبینی بصری شدند؛ سه نوشتن واقعی تست شد: (۱) تغییر دستی موجودی کیف پول مشتری «مشتری دوم» — موجودی از ۳۰,۰۰۰ به ۳۱,۰۰۰ تومان رفت، ردیف `manual_adjustment` صحیح در دفتر کل ظاهر شد؛ (۲) «تلاش مجدد» روی سرویس `test-cdn-demo.example.com` — تماس واقعی با API آروان‌کلود (شکست خورد، رفتار موردانتظار برای این کلید تست)، `provision_attempts` درست افزایش یافت؛ (۳) ذخیره‌ی نام کسب‌وکار در تنظیمات → بلافاصله در صفحه‌ی عمومی `/arvan/cdn` و قیمت نهایی نمایش‌داده‌شده (۱,۵۰۰ × ۱٫۱۵ = ۱,۷۲۵ تومان) منعکس شد — تأیید یکپارچگی Admin → Frontend، نه فقط رندر مجزا.
+**نکته‌ی تست‌پذیری:** دکمه‌های تأیید مرورگری (`onsubmit="return confirm(...)"`) با ابزار خودکار مرورگر قابل‌کلیک نبودند (دیالوگ native جاوااسکریپت را رد می‌کند)؛ برای عبور از این محدودیت ابزار (نه محدودیت کد)، فرم‌ها با `form.submit()` مستقیم در کنسول جاوااسکریپت ارسال شدند که `onsubmit` را دور می‌زند — رفتار سمت سرور (nonce/capability/idempotency) هرکدام مستقل تأیید شد.
+
 ## تصمیم‌های باز (باید در بلوک‌های بعدی حل شوند)
 
 | موضوع | کجا اثر می‌گذارد | باز از |
@@ -268,5 +290,6 @@
 | فیلدهای دقیق JSON پاسخ (`id`, `domain`, `created_at`، فیلد مقدار bucket ترافیک) هنوز با کلید واقعی تست نشده‌اند | `ArvanCdnClient::mapResource()`/`mapTrafficUsage()` — نگاشت‌ها ایزوله‌اند، اصلاح ارزان است | T-1.3 |
 | `wp/Support/Autoloader.php` گارد `ABSPATH` دارد؛ راهی برای لود `src/` بدون وردپرس وجود ندارد | «Zero-WordPress grep/load proof» اگر دوباره باز شود | T-1.3 |
 | مسیر موفق واقعی (غیر-Mock) `ArvanCdnClient` داخل Setup Wizard هرگز با اعتبارنامه‌ی واقعی ArvanCloud end-to-end تست نشده (Claude اجازه‌ی واردکردن API key واقعی ندارد؛ فقط با `MockCdnClient` موقت تأیید شد) | T-2.4 handleApiKey(); اگر یک اعتبارنامه‌ی تست واقعی در دسترس قرار گرفت باید توسط کاربر تأیید شود | T-2.4 |
-| سایت تست محلی (`arvan-test.test`) در وضعیت «ویزارد تمام‌شده» و با کاربران/سفارش‌های تستیِ بلوک ۷ (`testcustomer1`, `newcustomer2@example.com`، یک سرویس `provisioning_failed`) رها شده | نیاز به reset کامل (کاربران + جدول‌های `arvan_*` + آپشن‌ها) قبل از دموی از صفر | T-2.4 (کاربران بلوک ۷ اضافه شدند) |
+| سایت تست محلی (`arvan-test.test`) در وضعیت «ویزارد تمام‌شده» و با کاربران/سفارش‌ها/تراکنش‌های تستیِ بلوک ۷ و ۸ رها شده (کاربر ادمین `admin` هم رمزش برای تست بلوک ۸ بازنشانی شد) | نیاز به reset کامل (کاربران + جدول‌های `arvan_*` + آپشن‌ها + رمز ادمین) قبل از دموی از صفر | T-2.4، بزرگ‌شده در T-7.4 و T-8.1–T-8.5 |
 | `WpPaymentRepository::markFailed()` مقدار `note` را حتی وقتی `$reason` پاس‌داده‌شده `null` است بازنویسی می‌کند (یعنی یک دلیل قبلی را با NULL پاک می‌کند) | مسیر Mock Payment (بلوک ۷، T-3.4 اصلی) — تأثیر کم چون این متد امروز فقط با یک دلیل صریح صدا زده می‌شود، ولی رفتار متد عمومی گمراه‌کننده است | T-7.4 (پیدا شد توسط ایجنت T-7.6، رفع نشده) |
+| هیچ کوئری bulk (بدون N+1) برای «آخرین دوره‌ی صورتحساب هر سرویس/مشتری» روی `UsageLogRepository` وجود ندارد | ستون «هزینه‌ی اخیر» در Admin Services با `—` رندر می‌شود؛ فهرست Admin Customers مجبور به یک حلقه‌ی کوچک per-customer است | T-8.2/T-8.3 (پیدا شد توسط هر دو ایجنت مستقل) |

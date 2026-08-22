@@ -78,6 +78,29 @@ final class WpWalletRepository implements WalletRepository {
 		return null === $row ? null : $row;
 	}
 
+	public function allBalances(): array {
+		$rows = $this->db->get_results(
+			$this->db->prepare( 'SELECT customer_id, balance_rial FROM %i', $this->table() ),
+			ARRAY_A
+		);
+
+		$balances = [];
+		foreach ( is_array( $rows ) ? $rows : [] as $row ) {
+			$balances[ (int) $row['customer_id'] ] = Money::fromRial( (int) $row['balance_rial'] );
+		}
+
+		return $balances;
+	}
+
+	public function countLowBalance(): int {
+		return (int) $this->db->get_var(
+			$this->db->prepare(
+				'SELECT COUNT(*) FROM %i WHERE balance_rial > 0 AND notify_threshold_rial IS NOT NULL AND balance_rial <= notify_threshold_rial',
+				$this->table()
+			)
+		);
+	}
+
 	private function table(): string {
 		return Schema::table( 'wallets' );
 	}

@@ -618,9 +618,9 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
 
 # بلوک ۸ — Reseller Admin · 2h
 
-از ۱۲ صفحه مستقل اجتناب شود.
+از ۱۲ صفحه مستقل اجتناب شود — یک منوی بالادستی (`wp/Admin/AdminMenu.php`) با ۵ زیرصفحه، بدون افزودن هیچ صفحه‌ی مستقل دیگر.
 
-- [ ] **T-8.1** Dashboard
+- [x] **T-8.1** Dashboard
   - customers
   - active/suspended services
   - virtual balances
@@ -628,8 +628,9 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
   - reseller markup revenue
   - warnings
   - **0.4h**
+  - پذیرش: `wp/Admin/Controllers/DashboardController.php` + `wp/Admin/templates/dashboard.php`. تعداد مشتریان/سرویس فعال-معلق/مجموع موجودی کیف‌پول‌ها (`WalletRepository::allBalances()`، یک کوئری برای کل ریسلر)/هزینه‌ی امروز و سود کل ریسلر (`UsageLogRepository::totalsSince()`)/تعداد هشدار موجودی کم (`WalletRepository::countLowBalance()`) — همه با کوئری‌های bulk، بدون N+1. دکمه‌ی «اجرای فوری چرخه‌ی صورتحساب» به هندلر آماده‌ی `MeteringCronHandler` (T-5.4) وصل شد، منطقی تکراری نشد. «system/API status» عمداً اینجا نیامد — TECH.md §9/BACKLOG T-9.2 مسئول آن است.
 
-- [ ] **T-8.2** Customers
+- [x] **T-8.2** Customers
   - list
   - customer detail
   - wallet
@@ -637,8 +638,9 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
   - payments
   - usage
   - **0.4h**
+  - پذیرش: `wp/Admin/Controllers/CustomersController.php` + `wp/Admin/templates/customers.php` (یک کنترلر/تمپلیت، دو حالت روی `?customer_id=`). فهرست از `CustomerRepository::all()`/`WalletRepository::allBalances()`/`ServiceRepository::allForAdmin()` (bulk) ساخته می‌شود. عملیات «تغییر دستی موجودی کیف پول» (مبلغ+جهت+دلیل الزامی+تأیید) روی مرورگر زنده تست شد: موجودی از ۳۰,۰۰۰ به ۳۱,۰۰۰ تومان تغییر کرد و ردیف `manual_adjustment` صحیح در دفتر کل ثبت شد (از طریق `ManualAdjustmentService` موجود، بدون منطق تکراری). ویرایش دفتر کل جایی وجود ندارد.
 
-- [ ] **T-8.3** Services
+- [x] **T-8.3** Services
   - owner
   - Resource ID
   - credential
@@ -646,24 +648,27 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
   - usage/cost
   - retry action
   - **0.3h**
+  - پذیرش: `wp/Admin/Controllers/ServicesController.php` + `wp/Admin/templates/services.php`. عملیات «تلاش مجدد» روی سرویس تست `provisioning_failed` واقعی روی مرورگر اجرا شد: `ProvisioningService::retry()` (جدید) از طریق `CdnClientResolver` یک `ArvanCdnClient` واقعی ساخت، تماس واقعی با API آروان‌کلود انجام شد (شکست خورد — رفتار موردانتظار برای این کلید تست)، وضعیت درست به `provisioning_failed` برگشت، `provision_attempts` از ۰ به ۱ رفت و «آخرین خطا» نمایش داده شد. ستون «هزینه‌ی اخیر» به‌صورت آگاهانه `—` نمایش داده می‌شود — هیچ کوئری bulk بدون N+1 برای «آخرین دوره‌ی صورتحساب هر سرویس» وجود ندارد؛ یادداشت باز شد.
 
-- [ ] **T-8.4** Finance
+- [x] **T-8.4** Finance
   - tabs:
     - Payments
     - Ledger
     - Settlements
   - filters minimum viable
   - **0.4h**
+  - پذیرش: `wp/Admin/Controllers/FinanceController.php` + `wp/Admin/templates/finance.php`، سه تب روی `?tab=`. فیلتر وضعیت پرداخت (همه/در انتظار/موفق/ناموفق) به‌صورت لینک ساده. دفتر کل کاملاً فقط‌خواندنی. تسویه‌حساب‌ها از پورت/آداپتور تازه‌ساخته‌شده‌ی `SettlementRepository`/`WpSettlementRepository` می‌خواند — در حال حاضر خالی است چون T-9.1 (SettlementService) هنوز پیاده نشده؛ حالت خالی «هنوز هیچ تسویه‌حسابی ثبت نشده» به‌صورت زنده تأیید شد، نه یک باگ.
 
-- [ ] **T-8.5** Settings
+- [x] **T-8.5** Settings
   - Business
   - API Keys
   - Markup
   - Threshold/Lifecycle
   - Layout
   - **0.5h**
+  - پذیرش: `wp/Admin/Controllers/SettingsController.php` + `wp/Admin/templates/settings.php`، ۵ تب. هر تب دوباره از منطق `SetupWizard`/`ResellerSettings`/`ApiKeyRepository` موجود استفاده می‌کند، پیاده‌سازی دوم نساخت. تست زنده: تغییر نام کسب‌وکار ذخیره شد و بلافاصله در صفحه‌ی فروش CDN عمومی (`/arvan/cdn`) و قیمت نهایی (۱,۵۰۰ × ۱٫۱۵ = ۱,۷۲۵ تومان) منعکس شد — تأیید یکپارچگی سرتاسری Admin → Frontend.
 
-**DoD:** Reseller تمام requirementهای مدیریتی را بدون database access انجام دهد.
+**DoD:** ✅ Reseller تمام requirementهای مدیریتی را بدون database access انجام دهد — پنج صفحه‌ی Admin روی نصب واقعی وردپرس زنده تست شدند (ورود ادمین، مشاهده/تغییر هر ۵ صفحه، یک نوشتن واقعی در هرکدام از Customers/Services/Settings). QA رسمی موبایل/دسکتاپ هنوز باقی است — یادداشت برای Block 10.
 
 ---
 

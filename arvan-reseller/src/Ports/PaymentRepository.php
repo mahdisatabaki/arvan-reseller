@@ -72,4 +72,13 @@ interface PaymentRepository {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function historyForCustomer( int $customer_id, int $limit = 20 ): array;
+
+	/**
+	 * Recent payment attempts across every customer, newest first — the
+	 * Admin Finance "Payments" tab (SCREEN-SPECS.md §6). Admin-only,
+	 * unscoped like `ServiceRepository::allForAdmin()`.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function allRecent( int $limit = 50 ): array;
 }

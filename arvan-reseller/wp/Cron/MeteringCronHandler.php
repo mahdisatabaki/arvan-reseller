@@ -58,7 +58,13 @@ final class MeteringCronHandler {
 
 	private const LOCK_TRANSIENT = 'arvan_metering_lock';
 	private const LOCK_TTL       = 5 * MINUTE_IN_SECONDS;
-	private const MANUAL_ACTION  = 'arvan_run_billing_cycle';
+
+	/**
+	 * Public: the Admin Dashboard's "Run Billing Cycle Now" button
+	 * (BACKLOG T-8.1, SCREEN-SPECS.md §2) needs this to build its
+	 * admin-post.php link and matching `wp_nonce_field()`.
+	 */
+	public const MANUAL_ACTION = 'arvan_run_billing_cycle';
 
 	public function __construct(
 		private readonly ServiceRepository $services,

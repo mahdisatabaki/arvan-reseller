@@ -185,6 +185,32 @@ final class WpServiceRepository implements ServiceRepository {
 		return is_array( $rows ) ? $rows : [];
 	}
 
+	public function allForAdmin(): array {
+		$rows = $this->db->get_results(
+			$this->db->prepare( 'SELECT * FROM %i ORDER BY created_at DESC', $this->table() ),
+			ARRAY_A
+		);
+
+		return is_array( $rows ) ? $rows : [];
+	}
+
+	public function recordProvisionAttempt( int $service_id, ?string $error ): void {
+		$current  = $this->find( $service_id );
+		$attempts = null !== $current ? (int) $current['provision_attempts'] + 1 : 1;
+
+		$this->db->update(
+			$this->table(),
+			[
+				'provision_attempts' => $attempts,
+				'last_error'         => $error,
+				'updated_at'         => gmdate( 'Y-m-d H:i:s' ),
+			],
+			[ 'id' => $service_id ],
+			[ '%d', '%s', '%s' ],
+			[ '%d' ]
+		);
+	}
+
 	private function table(): string {
 		return Schema::table( 'services' );
 	}

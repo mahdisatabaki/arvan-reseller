@@ -68,6 +68,15 @@ final class WpCustomerRepository implements CustomerRepository {
 		return null === $row ? null : $row;
 	}
 
+	public function all(): array {
+		$rows = $this->db->get_results(
+			$this->db->prepare( 'SELECT * FROM %i ORDER BY created_at DESC', $this->table() ),
+			ARRAY_A
+		);
+
+		return is_array( $rows ) ? $rows : [];
+	}
+
 	private function table(): string {
 		return Schema::table( 'customers' );
 	}

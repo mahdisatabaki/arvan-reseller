@@ -55,4 +55,17 @@ interface UsageLogRepository {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function historyForCustomer( int $customer_id, ?int $service_id = null, int $limit = 20 ): array;
+
+	/**
+	 * Aggregated traffic/base/markup/total across every customer for
+	 * periods starting at or after `$since` — the Admin Dashboard's
+	 * "today's usage" and "reseller Markup revenue" figures
+	 * (SCREEN-SPECS.md §2). `$since` is caller-supplied (start of today,
+	 * or an epoch for an all-time total) rather than computed here, the
+	 * same testability reasoning as `ServiceRepository::dueForMetering()`'s
+	 * `$asOf`.
+	 *
+	 * @return array{traffic_value: int, base_rial: int, markup_rial: int, total_rial: int}
+	 */
+	public function totalsSince( DateTimeImmutable $since ): array;
 }

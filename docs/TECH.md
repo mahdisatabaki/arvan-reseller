@@ -94,10 +94,14 @@ arvan-reseller/
 │   │   └── WordPressHttpClient.php   (implements src/Ports/HttpClient.php)
 │   ├── Security/
 │   ├── Cron/
-│   ├── Admin/
+│   ├── Admin/            (AdminMenu — page/menu structure only, no
+│   │                       controller logic; Controllers/ + templates/ hold
+│   │                       the 5 Reseller Admin screens — Dashboard,
+│   │                       Customers, Services, Finance, Settings — same
+│   │                       controller/template split as wp/Frontend/)
 │   ├── Arvan/           (CdnClientResolver — decrypt+construct a CdnClient
 │   │                      from a stored api_keys row; shared by the cron
-│   │                      handler and the CDN order controller)
+│   │                      handler and the CDN order/services controllers)
 │   ├── Customer/
 │   ├── Frontend/        (RouteRegistrar, TemplateRouter, Assets,
 │   │                      CurrentCustomer, Controllers/, templates/ — the

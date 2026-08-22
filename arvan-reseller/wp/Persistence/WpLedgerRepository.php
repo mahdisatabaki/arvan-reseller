@@ -148,6 +148,20 @@ final class WpLedgerRepository implements LedgerRepository {
 		return is_array( $rows ) ? $rows : [];
 	}
 
+	public function allRecent( int $limit = 50, int $offset = 0 ): array {
+		$rows = $this->db->get_results(
+			$this->db->prepare(
+				'SELECT * FROM %i ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d',
+				$this->ledgerTable(),
+				$limit,
+				$offset
+			),
+			ARRAY_A
+		);
+
+		return is_array( $rows ) ? $rows : [];
+	}
+
 	/**
 	 * @return array<string, mixed>|null
 	 */

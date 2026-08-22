@@ -64,4 +64,13 @@ interface LedgerRepository {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function historyForCustomer( int $customer_id, int $limit = 50, int $offset = 0 ): array;
+
+	/**
+	 * Recent ledger entries across every customer, newest first — the
+	 * Admin Finance "Ledger" tab (SCREEN-SPECS.md §6, ADR-016). Admin-only,
+	 * unscoped like `PaymentRepository::allRecent()`.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function allRecent( int $limit = 50, int $offset = 0 ): array;
 }

@@ -146,4 +146,22 @@ interface ServiceRepository {
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function dueForTermination( DateTimeImmutable $suspendedBefore ): array;
+
+	/**
+	 * Every service across every customer, newest first — the Admin
+	 * Services list (SCREEN-SPECS.md §5). Admin-only, unscoped like
+	 * `find()`; never call this from customer-facing code.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function allForAdmin(): array;
+
+	/**
+	 * Records one provisioning attempt outcome: increments the attempt
+	 * counter and stores (or clears, on success) the last error message.
+	 * Separate from `updateStatus()`/`recordProvisioned()` because a
+	 * retry (Admin Services "retry" action, SCREEN-SPECS.md §5) needs to
+	 * track attempt history independently of the state transition itself.
+	 */
+	public function recordProvisionAttempt( int $service_id, ?string $error ): void;
 }
