@@ -755,13 +755,14 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
 
 این بلوک قربانی نمی‌شود.
 
-- [ ] **T-11.1** One-click seed/demo data
+- [x] **T-11.1** One-click seed/demo data
   - 2 customers
   - different balances
   - CDN services
   - usage history
   - payment history
   - **0.4h**
+  - پذیرش: `arvan-reseller/bin/seed-demo-data.php` — یک اسکریپت CLI (نه UI، برای رعایت زمان)، فقط `php bin/seed-demo-data.php`. از repositoryهای واقعی پلاگین استفاده می‌کند (نه SQL دستی)، پس ledger/wallet دقیقاً همان چیزی است که اپلیکیشن واقعی تولید می‌کرد. idempotent (اجرای دوباره مشتری تکراری نمی‌سازد). زنده روی `arvan-test.test` اجرا و تأیید شد: مشتری اول ۸۴,۴۷۵ تومان / مشتری دوم ۸,۱۰۰ تومان، هر دو با یک سرویس فعال و تاریخچه‌ی مصرف/پرداخت — داشبورد ادمین (مجموع موجودی ۹۲,۵۷۵ + سود کل ۲,۹۲۵ تومان) و دفتر کل هر دو با محاسبه‌ی دستی مطابقت کامل داشتند. **محدودیت شناخته‌شده:** جست‌وجوی خودکار مسیر `wp-load.php` روی نصب junction/symlink‌شده (مثل محیط تست محلی این پروژه) کار نمی‌کند چون `__DIR__` از مسیر واقعی هدف junction resolve می‌شود، نه مسیر مجازی؛ روی یک نصب معمولی (کپی/کلون مستقیم در `wp-content/plugins/`) مشکلی نیست.
 
 - [x] **T-11.2** README
   - install

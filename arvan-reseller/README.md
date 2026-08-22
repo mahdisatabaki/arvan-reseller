@@ -18,6 +18,8 @@ Requirements: PHP 8.1+, a current stable WordPress release, and a MySQL/MariaDB 
 
 No Composer install step is required — the plugin uses a small PSR-4 autoloader (`wp/Support/Autoloader.php`), not a vendor directory.
 
+**Demo data:** once the wizard is complete, run `php bin/seed-demo-data.php` (from a normal, non-symlinked plugin install) to populate two customers with different wallet balances, an active CDN service each, and payment/usage history — enough for the admin Dashboard/Customers/Finance screens to show real data without building it live. Safe to re-run.
+
 ## Architecture
 
 Hexagonal / ports-and-adapters. `src/` is the domain and application core and has **zero WordPress dependency** (no `wp_*` calls, no `$wpdb`, no `WP_Post`) — it only depends on interfaces defined in `src/Ports/`. `wp/` holds every WordPress-specific adapter: `$wpdb` repositories, admin screens, cron wiring, HTTP client, secret storage, capabilities, and the frontend route/template layer. Business logic (Pricing, Wallet, Ledger, Metering, Lifecycle, Provisioning) lives only in `src/`; WordPress code calls into it, never the reverse.
