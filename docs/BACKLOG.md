@@ -496,23 +496,38 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
     - `BillingService::bill()` حالا `balance` (موجودی بعد از debit، از خروجی `LedgerRepository::append()`) را هم در نتیجه برمی‌گرداند — فراخوان (`MeteringCronHandler`) این را می‌خواند و `SuspensionEngine`+`LowBalanceNotifier` را در همان چرخه صدا می‌زند، دقیقاً طبق BILLING.md §۱۴ «همان billing workflow، نه cron جدا»
     - ۱۵ چک خودکار روی `SuspensionEngine` تنها + ۷ چک integration کامل (با `MockCdnClient` واقعی + `MeteringService`+`BillingService`+`SuspensionEngine`+`LowBalanceNotifier` با هم) که هر دو سناریو را تأیید کرد: عبور از آستانه بدون رسیدن به صفر (فقط notify)، و رسیدن دقیق به صفر (suspend + notify با هم)
 
-- [ ] **T-6.4** Resume after Recharge
+- [x] **T-6.4** Resume after Recharge
   - if suspension reason = wallet
   - successful recharge
   - balance > resume threshold
   - unhold
   - service active
   - **0.5h**
+  - پذیرش:
+    - همان محدودیت T-6.3 (بدون API واقعی unhold) اینجا هم اعمال شد — عمداً، طبق همان تصمیم کاربر؛ فقط وضعیت محلی
+    - دو متد جدید روی `SuspensionEngine` (نه کلاس جدا) — چون Suspend/Resume دو جهت یک تصمیم‌اند: `resumeIfEligible()` (یک سرویس) + `resumeEligibleForCustomer()` (تمام سرویس‌های تعلیق‌شده‌ی یک مشتری، بعد از شارژ)
+    - شرط دقیق BILLING.md §۱۵: `balance > resume_threshold` (نه `>=`) — موجودی دقیقاً برابر آستانه resume نمی‌شود
+    - فقط سرویس‌های `suspend_reason === 'wallet'` واجد شرایطند؛ سرویس متوقف‌شده به دلیل دیگر هرگز خودکار resume نمی‌شود
+    - `resumeEligibleForCustomer()` منطق eligibility را تکرار نمی‌کند، فقط کاندیدها را پیدا و تصمیم را به `resumeIfEligible()` واگذار می‌کند
+    - هنوز به هیچ trigger واقعی (تأیید پرداخت) وصل نشده — چون آن جریان هم هنوز UI ندارد؛ عمداً
+    - پیاده‌سازی‌شده توسط ایجنت پس‌زمینه، بازبینی مستقل شد
 
-- [ ] **T-6.5** Terminate + isolation test
+- [x] **T-6.5** Terminate + isolation test
   - grace period
   - delete resource
   - audit
   - Customer A zero → A suspended/terminated
   - Customer B unchanged
   - **0.5h**
+  - پذیرش:
+    - `src/Lifecycle/TerminationEngine.php` — بر خلاف Suspend/Resume، اینجا API واقعی وجود دارد: `CdnClient::deleteResource()` در T-1.1/T-1.3 تأیید شده، پس تماس remote واقعی زده می‌شود
+    - شکست حذف remote → `terminate_failed` (نه `terminated`) + audit جداگانه؛ هرگز سرویس را بدون تأیید واقعی حذف علامت نمی‌زند
+    - دو متد جدید روی `ServiceRepository`: `findSuspendedByCustomer()` (برای Resume هم استفاده شد) و `dueForTermination(DateTimeImmutable $suspendedBefore)` — الگوی همان `dueForMetering(asOf)`: فراخوان زمان را حساب می‌کند، پورت فقط فیلتر می‌کند
+    - **رفع یک gap کوچک:** `WpServiceRepository::updateStatus()` قبلاً `suspend_reason` را روی resume (status=active) پاک نمی‌کرد — یک مقدار قدیمی 'wallet' روی سرویس فعال باقی می‌ماند. ایجنت T-6.4 این را پیدا کرد ولی خارج از scope خودش بود (تک‌فایلی)؛ همین‌جا رفع شد
+    - **تست isolation دقیقاً طبق متن BACKLOG:** مشتری A به صفر می‌رسد → suspend → (بعد از grace period) → terminate؛ در تمام مراحل مشتری B و resource واقعی‌اش (روی `MockCdnClient`) کاملاً دست‌نخورده می‌ماند — تأیید شد هم روی status هم روی وجود واقعی resource روی provider، نه فقط audit log
+    - ۱۵ چک خودکار سبز (Terminate پایه + شکست provider + isolation کامل)
 
-**DoD:** Suspend و Resume end-to-end و isolation test سبز.
+**DoD:** ✅ Suspend و Resume end-to-end و isolation test سبز — با ۱۵ چک، شامل سناریوی دقیق «مشتری A صفر → suspend → terminate، مشتری B و resource واقعی‌اش کاملاً دست‌نخورده».
 
 ---
 

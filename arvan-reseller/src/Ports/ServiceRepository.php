@@ -92,6 +92,12 @@ interface ServiceRepository {
 	 * the transition is legal — that is LifecycleService's job (TECH.md §5);
 	 * this method only records the outcome the caller already decided on.
 	 *
+	 * Implementations stamp `suspended_at`/`terminated_at` automatically when
+	 * `$status` is `suspended`/`terminated` — that timestamp is what
+	 * `dueForTermination()` measures the grace period against, so it must
+	 * always be set the moment a service actually becomes suspended, not
+	 * left to a caller that might forget.
+	 *
 	 * @param string      $status            One of the Service states in
 	 *                                        DATA-MODEL.md §8, e.g. "active",
 	 *                                        "suspended", "terminated",
@@ -107,4 +113,27 @@ interface ServiceRepository {
 		string $status,
 		?string $suspension_reason = null
 	): void;
+
+	/**
+	 * A customer's services currently suspended for the given reason (e.g.
+	 * `wallet`) — the set a successful recharge must re-check for eligible
+	 * resume (BILLING.md §15). Scoped to one customer by construction (the
+	 * caller already knows whose wallet was just credited), so this has no
+	 * separate IDOR concern the way a bare `find()` would.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function findSuspendedByCustomer( int $customer_id, string $reason ): array;
+
+	/**
+	 * Wallet-suspended services whose grace period has elapsed —
+	 * `suspended_at <= $suspendedBefore` (BILLING.md §16:
+	 * `terminate_after = suspended_at + grace_period`). `$suspendedBefore`
+	 * is caller-computed (`Clock::now()` minus the reseller's configured
+	 * grace period), matching `dueForMetering()`'s own `$asOf` pattern, so
+	 * this stays testable without a live clock.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function dueForTermination( DateTimeImmutable $suspendedBefore ): array;
 }

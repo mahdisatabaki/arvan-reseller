@@ -17,7 +17,7 @@
 بلوک ۳  ██████████ 100%   تمام (۶/۶ تسک)
 بلوک ۴  ██████████ 100%   تمام (۴/۴ تسک)
 بلوک ۵  ██████████ 100%   تمام (۴/۴ تسک)
-بلوک ۶  ██████░░░░  60%   T-6.1, T-6.2, T-6.3 تمام — بعدی: T-6.4 Resume after Recharge
+بلوک ۶  ██████████ 100%   تمام (۵/۵ تسک)
 بلوک ۷  ░░░░░░░░░░   0%
 بلوک ۸  ░░░░░░░░░░   0%
 بلوک ۹  ░░░░░░░░░░   0%
@@ -25,9 +25,9 @@
 بلوک ۱۱ ░░░░░░░░░░   0%
 ```
 
-**قدم بعدی: T-6.4 — Resume after Recharge** (unhold هم همان محدودیت hold/unhold را دارد؛ باید طبق همان تصمیم محلی-فقط پیش برود).
+**قدم بعدی: بلوک ۷ — Customer Frontend**، اولین بلوک UI مشتری‌محور (تا الان همه‌چیز backend یا فقط Setup Wizard ادمین بود).
 
-**تصمیم محصولی مهم این دور:** چون هیچ API واقعی hold/unhold روی آروان تأیید نشده (باز از T-1.1)، Suspend **فقط وضعیت محلی** است — سرویس CDN واقعی روی آروان همچنان کار می‌کند. این محدودیت شناخته‌شده است، نه باگ؛ باید در دموی نهایی (DEMO.md) صراحتاً توضیح داده شود.
+**تصمیم محصولی مهم بلوک ۶:** چون هیچ API واقعی hold/unhold روی آروان تأیید نشده (باز از T-1.1)، Suspend/Resume **فقط وضعیت محلی**اند — سرویس CDN واقعی روی آروان همچنان کار می‌کند. Terminate اما واقعی است (`deleteResource()` تأیید شده). این محدودیت شناخته‌شده است، نه باگ؛ در DEMO.md صریحاً ثبت شد.
 
 **نکته‌ی محیطی:** سایت تست محلی (`arvan-test.test`) الان در وضعیت «ویزارد تمام‌شده» است. برای دموی از صفر، باید پلاگین را deactivate/activate کرد یا آپشن‌های `arvan_reseller_*` را پاک کرد.
 
@@ -51,7 +51,7 @@
 | ۳ | Wallet + Ledger + Payment | ✅ تمام | 6/6 | `wp/Persistence/WpLedgerRepository.php`, `src/Ports/CustomerRepository.php`, `wp/Persistence/WpCustomerRepository.php`, `wp/Persistence/WpWalletRepository.php`, `wp/Persistence/WpPaymentRepository.php`, `src/Wallet/PaymentService.php`, `wp/Customer/CustomerRegistration.php`, `src/Wallet/ManualAdjustmentService.php`, `wp/Persistence/WpAuditLogger.php` |
 | ۴ | CDN Provisioning + Mapping | ✅ تمام | 4/4 | `src/Lifecycle/ServiceStatus.php`, `src/Ports/OrderRepository.php`, `wp/Persistence/WpOrderRepository.php`, `wp/Persistence/WpServiceRepository.php`, `src/Provisioning/ProvisioningService.php`, `src/Provisioning/ResourceSyncService.php`, `src/Provisioning/DeliveryData.php` |
 | ۵ | Metering + Billing | ✅ تمام | 4/4 | `src/Metering/MeteringService.php`, `src/Metering/UsagePeriod.php`, `src/Metering/UsagePricingAdapter.php`, `src/Ports/UsageLogRepository.php`, `wp/Persistence/WpUsageLogRepository.php`, `src/Billing/BillingService.php`, `wp/Cron/MeteringCronHandler.php`, `wp/Support/SystemClock.php` |
-| ۶ | Limits + Lifecycle | 🔶 در حال انجام | 3/5 | `src/Lifecycle/ThresholdPolicy.php`, `ThresholdPolicyResolver.php`, `SuspensionEngine.php`, `src/Ports/NotificationRepository.php`, `wp/Persistence/WpNotificationRepository.php`, `wp/Security/WordPressMailer.php`, `src/Wallet/LowBalanceNotifier.php`, `wp/Cron/MeteringCronHandler.php` (به‌روزشده) |
+| ۶ | Limits + Lifecycle | ✅ تمام | 5/5 | `src/Lifecycle/ThresholdPolicy.php`, `ThresholdPolicyResolver.php`, `SuspensionEngine.php`, `TerminationEngine.php`, `src/Ports/NotificationRepository.php`, `wp/Persistence/WpNotificationRepository.php`, `wp/Security/WordPressMailer.php`, `src/Wallet/LowBalanceNotifier.php`, `wp/Cron/MeteringCronHandler.php` (به‌روزشده) |
 | ۷ | Customer Frontend | ⏳ شروع‌نشده | 0/6 | — |
 | ۸ | Reseller Admin | ⏳ شروع‌نشده | 0/5 | — |
 | ۹ | Settlement + System Status | ⏳ شروع‌نشده | 0/2 | — |
@@ -207,7 +207,27 @@
 - **T-6.2 — `LowBalanceNotifier`** — یک ایجنت پس‌زمینه دیگر وسط اجرا با خطای اتصال قطع شد (سومین بار این اتفاق می‌افتد این سشن)، ولی این‌بار هر ۴ فایل کامل و صحیح روی دیسک بودند (`NotificationRepository` پورت، `WpNotificationRepository`، `WordPressMailer`، `LowBalanceNotifier`) — فقط اسکریپت تست خودش ناتمام ماند. بازخوانی مستقیم کد + ۱۸ چک تست کاملاً جدا (نه اسکریپت ایجنت) هر دو تأیید کردند: کد درست است. تصمیم طراحی برجسته: `record()` قبل از `send()` — تنها راه تشخیص «این تکرار cron است» همان `record()` است؛ اگر ترتیب برعکس بود، تکرار cron قبل از فهمیدن دوباره ایمیل می‌فرستاد.
 - **T-6.3 — `SuspensionEngine` + سیم‌کشی کامل** — `SuspensionEngine` idempotent (فقط از `active` وارد `suspended` می‌شود). `BillingService::bill()` حالا `balance` را هم برمی‌گرداند (قبلاً نتیجه‌ی `LedgerRepository::append()` دور ریخته می‌شد) تا `MeteringCronHandler` بدون یک خواندن اضافه از کیف‌پول بداند باید Suspend/notify کند یا نه. `MeteringCronHandler` حالا `WalletRepository`, `CustomerRepository`, `SuspensionEngine`, `ThresholdPolicyResolver`, `LowBalanceNotifier` را هم می‌گیرد و بعد از هر debit موفق هر دو را در همان چرخه صدا می‌زند (بدون صبر برای cron جدا).
 - **تست یکپارچه:** ۱۵ چک روی خودِ `SuspensionEngine` + ۷ چک integration کامل با `MockCdnClient` واقعی از طریق `MeteringService`→`BillingService`→(`SuspensionEngine`+`LowBalanceNotifier`) با هم — یک سناریو عبور از آستانه بدون رسیدن به صفر (فقط notify)، یک سناریو رسیدن دقیق به صفر (suspend + notify هر دو، با attribution صحیح actor برای trigger دستی).
-- **بدهی مستندسازی جدید:** DEMO.md باید صراحتاً بگوید Suspend فقط محلی است، نه یک محدودیت پنهان دموی زنده.
+- **بدهی مستندسازی جدید:** DEMO.md باید صراحتاً بگوید Suspend فقط محلی است، نه یک محدودیت پنهان دموی زنده. **(رفع شد — پایین ببین.)**
+
+### T-6.4 — Resume after Recharge (ایجنت پس‌زمینه)
+
+دو متد جدید روی همان `SuspensionEngine` (نه کلاس جدا، چون Suspend/Resume دو جهت یک تصمیم‌اند): `resumeIfEligible()` (یک سرویس) + `resumeEligibleForCustomer()` (تمام سرویس‌های تعلیق‌شده‌ی یک مشتری، بعد از شارژ). شرط دقیق `balance > resume_threshold` (نه `>=`) طبق BILLING.md §۱۵ رعایت شد. فقط `suspend_reason === 'wallet'` واجد شرایط resume خودکار است.
+
+**gap کوچک پیدا شد، رفع شد:** ایجنت گزارش داد `WpServiceRepository::updateStatus()` وقتی سرویس به `active` برمی‌گردد، `suspend_reason` قدیمی را پاک نمی‌کند (چون خارج از scope تک‌فایلی خودش بود، فقط گزارش داد، رفع نکرد). همین‌جا در T-6.5 رفع شد — یک `if (status===active) suspend_reason=null` قبل از شرط قبلی. تست مستقل با fake `$wpdb` تأیید کرد.
+
+۱۳ چک خودکار ایجنت سبز — شامل مورد مرزی دقیق (موجودی==آستانه نباید resume کند)، رد دلیل غیر-wallet، و idempotency.
+
+### T-6.5 — Terminate + isolation test (بستن بلوک ۶)
+
+`src/Lifecycle/TerminationEngine.php` — برخلاف Suspend/Resume، اینجا `CdnClient::deleteResource()` واقعاً وجود دارد و تماس remote واقعی زده می‌شود. شکست حذف → `terminate_failed`، نه `terminated` — هرگز بدون تأیید واقعی حذف علامت نمی‌زند. دو متد جدید روی `ServiceRepository`: `findSuspendedByCustomer()` و `dueForTermination(suspendedBefore)` (الگوی `dueForMetering` — فراخوان زمان را حساب می‌کند).
+
+**تست isolation دقیقاً طبق متن BACKLOG T-6.5:** مشتری A به صفر می‌رسد → suspend → terminate؛ در هر مرحله مشتری B و **resource واقعی‌اش روی provider** (نه فقط status محلی‌اش) کاملاً دست‌نخورده تأیید شد — با `MockCdnClient` واقعی، بررسی مستقیم `getResource()` بعد از عملیات. ۱۵ چک سبز.
+
+**بستن بلوک ۶ — DoD:** ✅ Suspend/Resume end-to-end + isolation test سبز.
+
+### به‌روزرسانی DEMO.md
+
+طبق بدهی بالا: یک خط صریح به بخش «چه چیزی واقعی است / چه چیزی شبیه‌سازی‌شده» اضافه شد — Suspend فقط وضعیت محلی است، سرویس واقعی روی آروان همچنان کار می‌کند، تا در ضبط دمو اشتباهاً به‌عنوان قطع واقعی ترافیک نمایش داده نشود.
 
 ## تصمیم‌های باز (باید در بلوک‌های بعدی حل شوند)
 
