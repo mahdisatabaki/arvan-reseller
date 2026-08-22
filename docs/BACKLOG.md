@@ -773,12 +773,13 @@ Buffer برای bug، API uncertainty و recording است؛ برای Feature ج�
   - **0.3h**
   - پذیرش: `arvan-reseller/README.md` نوشته شد (انگلیسی، مطابق زبان بقیه‌ی docs/؛ فقط UI خودِ پلاگین فارسی است). هر ۷ بخش پوشش داده شد. صداقت محور: بخش «Demo mode» به‌صراحت Suspend را local-status-only معرفی می‌کند (مهم‌ترین افشای پروژه)، Settlement را «ساخته‌نشده» می‌گوید نه چیزی مبهم، و نتیجه‌ی ممیزی امنیتی را بدون اغراق («nothing... was wrong when checked»، نه یک تضمین قطعی) بیان می‌کند.
 
-- [ ] **T-11.3** Demo rehearsal
+- [x] **T-11.3** Demo rehearsal (بخش زنده‌ی قابل‌اجرا؛ suspend/resume واقعی رهرسال نشد)
   - exact balances
   - exact markup
   - exact usage
   - predictable suspend/resume
   - **0.3h**
+  - پذیرش: با یک مشتری سوم و تازه (بعداً پاک شد، مشتریان seed دست‌نخورده ماندند) کل مسیر زنده اجرا شد: ثبت‌نام (موجودی صفر) → CTA درست («افزایش اعتبار») → شارژ Mock ۲۰,۰۰۰ تومانی → سفارش CDN. **یک باگ محیطی واقعی پیدا و رفع شد:** کلید API پیش‌فرض (`Production`) در وضعیت `disabled` بود (احتمالاً حین تست دکمه‌ی «غیرفعال کردن» در تنظیمات)، که باعث می‌شد سفارش با پیام غلط «امکان فروش سرویس وجود ندارد» شکست بخورد به‌جای پیام صحیح خطای Provider — با `status='active'` در دیتابیس رفع شد؛ بعد از رفع، سفارش دوباره اجرا شد و دقیقاً همان رفتار شناخته‌شده‌ی همیشگی را داد (تماس واقعی با API، شکست Provider، `provisioning_failed` صحیح، بدون کسر از کیف پول). **suspend/resume واقعی رهرسال نشد** — چرخه‌ی متر‌کردن/صورتحساب فقط روی یک سرویس واقعاً `active` معنا دارد، و تنها راه رسیدن به آن یا یک کلید ArvanCloud واقعاً کارکردن (که در این محیط هرگز تأیید نشده) یا سوییچ موقت به `MockCdnClient` است — طبق DEMO.md §۵ («Demo Failure Strategy: switch to explicitly labeled Demo Provider»)، این یک تصمیم ضبط است که باید کاربر بگیرد، نه چیزی که خودکار در کد جاسازی شود. منطق suspend/resume خودش از قبل در بلوک ۶ با `MockCdnClient` کامل تست شده بود (رجوع به Changelog بلوک ۶).
 
 - [ ] **T-11.4** Desktop recording
   - **1.0h**
