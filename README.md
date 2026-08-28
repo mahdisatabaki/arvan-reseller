@@ -1,36 +1,25 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Arvan Reseller
 
-## Getting Started
+پلاگین وردپرسی که به هر کسب‌وکار امکان می‌دهد CDN آروان‌کلاد را از سایت خودش، زیر برند خودش، به مشتری‌هایش بفروشد.
 
-First, run the development server:
+[اسکرین‌شات یا GIF دمو]
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## مسئله
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+آروان فقط حساب مادر ریسلر را می‌شناسد. اگر چند مشتری به یک ریسلر پول پرداخت کنند، آروان مسئول نگهداری تفکیک مالی آن‌ها نیست — این‌که هر مشتری چقدر پرداخت کرده، موجودی فعلی‌اش چقدر است، چه سرویسی دارد و مصرفش چقدر بوده، باید کاملاً توسط خودِ ریسلر مدیریت شود. Arvan Reseller همین لایه‌ی حسابداری/مشتری را روی وردپرس می‌سازد.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## چطور کار می‌کند
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+ریسلر افزونه را نصب می‌کند، Access Token و API Key اکانت آروان خودش را ثبت می‌کند، نرخ سود (تا سقف ۲۰٪) و اطلاعات مجموعه را مشخص می‌کند — یک صفحه‌ی فروش CDN روی سایتش فعال می‌شود. مشتری در همان سایت ثبت‌نام می‌کند، کیف پول مجازی‌اش را شارژ می‌کند و CDN سفارش می‌دهد؛ افزونه سرویس را از طریق API واقعی آروان می‌سازد، مصرف را ساعتی از آروان می‌خواند، هزینه را با اعمال سود ریسلر از کیف پول همان مشتری کم می‌کند و در صورت اتمام اعتبار سرویس را بلافاصله معلق می‌کند. یک پنل ادمین کامل (داشبورد، مشتریان، سرویس‌ها، مالی، تنظیمات) همه‌ی این‌ها را برای ریسلر قابل مدیریت و رصد می‌کند.
 
-## Learn More
+## معماری
 
-To learn more about Next.js, take a look at the following resources:
+معماری Hexagonal (Ports & Adapters): `src/` منطق دامنه/کسب‌وکار است و **صفر وابستگی به وردپرس** دارد (بدون `wp_*`، بدون `$wpdb`)؛ `wp/` تنها لایه‌ای است که با وردپرس صحبت می‌کند. تمام داده‌های مالی و مصرف در **۱۱ جدول اختصاصی** (`arvan_*`) نگه‌داری می‌شود، نه در `posts`/`postmeta`. پول همیشه عدد صحیح ریال است، هرگز اعشار.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## مستندات
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+مجموعه‌ی کامل اسناد فنی/محصولی در [`docs/`](docs/) — از جمله PRD، معماری، مدل داده، امنیت، و **۱۷ تصمیم معماری مستندشده** در [`docs/DECISIONS.md`](docs/DECISIONS.md).
 
-## Deploy on Vercel
+## نصب
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+راهنمای نصب، اجرا و تنظیم افزونه: [`arvan-reseller/README.md`](arvan-reseller/README.md)
