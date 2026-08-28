@@ -1,8 +1,8 @@
 # Arvan Reseller
 
-پلاگین وردپرسی که به هر کسب‌وکار امکان می‌دهد CDN آروان‌کلاد را از سایت خودش، زیر برند خودش، به مشتری‌هایش بفروشد.
+A WordPress plugin that lets any business resell ArvanCloud CDN to its own customers, under its own brand, from its own site — with per-customer wallets, usage-based billing, and service lifecycle management, without any dependency on WooCommerce or other plugins. Full documentation below is in Persian (the plugin's UI language); see [`docs/`](docs/) for architecture and decision records.
 
-[اسکرین‌شات یا GIF دمو]
+پلاگین وردپرسی که به هر کسب‌وکار امکان می‌دهد CDN آروان‌کلاد را از سایت خودش، زیر برند خودش، به مشتری‌هایش بفروشد.
 
 ## مسئله
 
